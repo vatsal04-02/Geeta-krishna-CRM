@@ -181,16 +181,24 @@ async function main() {
     await page.keyboard.press('g'); await page.keyboard.press('i');
     await page.waitForURL(/\/inbox/);
   });
-  await step('light theme renders', async () => {
+  await step('both themes render (light is the clinic default) and the toggle flips them', async () => {
     await page.goto(`${BASE}/w/${wsId}`);
     await settle(page);
-    await page.getByRole('button', { name: 'Switch to light mode' }).click();
-    await page.waitForTimeout(300);
+    const theme = () => page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+    const toggle = () => page.getByRole('button', { name: /Switch to (light|dark) mode/ });
+    const first = await theme();
+    expect(first === 'light', `the clinic default theme should be light, got ${first}`);
     await page.screenshot({ path: path.join(SHOTS, '41-dashboard-light.png') });
+    await toggle().click();
+    await page.waitForTimeout(300);
+    expect((await theme()) === 'dark', 'the toggle did not switch to dark');
+    await page.screenshot({ path: path.join(SHOTS, '41-dashboard-dark.png') });
     await page.goto(`${BASE}/w/${wsId}/inbox`);
     await settle(page);
-    await page.screenshot({ path: path.join(SHOTS, '42-inbox-light.png') });
-    await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+    await page.screenshot({ path: path.join(SHOTS, '42-inbox-dark.png') });
+    await toggle().click();
+    await page.waitForTimeout(200);
+    expect((await theme()) === 'light', 'the toggle did not switch back to light');
   });
   await step('API responses carry no backend ids or keys', async () => {
     const bodies = await page.evaluate(async (w) => Promise.all(['/api/me', `/api/w/${w}/workspace`, `/api/w/${w}/settings`, `/api/w/${w}/automations`, `/api/w/${w}/conversations`].map(async (u) => (await fetch(u)).text())), wsId);
@@ -229,9 +237,9 @@ async function main() {
       expect(over <= 1, `/${p} scrolls sideways by ${over}px`);
       if (p === '' || p === 'inbox') await mp.screenshot({ path: path.join(SHOTS, `60-mobile-${p || 'dashboard'}.png`) });
     }
-    for (const name of ['Sign out', 'Switch to light mode', 'Open menu']) {
+    for (const name of ['Sign out', /Switch to (light|dark) mode/, 'Open menu']) {   // the theme button's label depends on the current theme
       const box = await mp.getByRole('button', { name }).boundingBox();
-      expect(box && box.x >= 0 && box.x + box.width <= 390, `top-bar button "${name}" is off-screen`);
+      expect(box && box.x >= 0 && box.x + box.width <= 390, `top-bar button "${String(name)}" is off-screen`);
     }
     await mp.getByRole('button', { name: 'Open menu' }).click();
     await mp.locator('nav[aria-label=Main]').last().waitFor();

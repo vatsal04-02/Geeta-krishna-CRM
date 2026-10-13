@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 const B = process.env.BASE_URL || 'http://localhost:8787';
+const WS = process.env.E2E_WS || 'demo-physio'; const EMAIL = process.env.E2E_EMAIL || 'staff@flowhq.demo'; const PASSWORD = process.env.E2E_PASSWORD || 'demo1234';   // defaults = the FLOWHQ_DEMO users; set these to run against a real-Grist FlowHQ
 const S = process.env.OUT_DIR || path.join(os.tmpdir(), 'gk-e2e'); fs.mkdirSync(S, { recursive: true });
 const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) process.exitCode = 1; };
 // a synthetic 240x160 PNG (no real patient data)
@@ -23,8 +24,8 @@ const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
 const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(String(e))); p.on('console', (m) => m.type() === 'error' && !/status of 409/.test(m.text()) && errs.push(m.text()));   // 409 = the duplicate warning, by design
 const step = async (name, fn) => { try { await fn(); } catch (e) { ok(false, `${name} — ${String(e).split('\n')[0]}`); await p.screenshot({ path: `${S}/fail-${name.replace(/\W+/g, '-')}.png` }).catch(() => {}); } };
 
-await p.goto(`${B}/login`); await p.fill('input[type=email]', 'staff@flowhq.demo'); await p.fill('input[type=password]', 'demo1234'); await p.click('button[type=submit]');
-await p.waitForURL(/\/w\//); const W = `${B}/w/demo-physio`; await p.goto(W); await p.waitForTimeout(800);
+await p.goto(`${B}/login`); await p.fill('input[type=email]', EMAIL); await p.fill('input[type=password]', PASSWORD); await p.click('button[type=submit]');
+await p.waitForURL(/\/w\//); const W = `${B}/w/${WS}`; await p.goto(W); await p.waitForTimeout(800);
 const nav = await p.locator('nav[aria-label=Main]').innerText();
 ok(['Patients', 'Prescriptions', 'Invoices & Payments', 'Attendance', 'Enquiries'].every((x) => nav.includes(x)), `nav shows the clinical pages and "Enquiries": ${nav.replace(/\n+/g, ' | ')}`);
 
