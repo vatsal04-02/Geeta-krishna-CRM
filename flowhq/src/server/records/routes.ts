@@ -29,6 +29,7 @@ export function recordsRoutes() {
   const clean = <T extends Record<string, unknown>>(o: T) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, v === '' && /On$/.test(k) ? null : v])) as T;
 
   r.get('/clinic', (c) => c.json(svc(c).clinic()));
+  r.get('/clinic-summary', async (c) => c.json(await svc(c).doctorSummary(Number(c.req.query('days') || 7))));
 
   r.get('/patients', async (c) => c.json(await svc(c).listPatients({ q: c.req.query('q'), status: c.req.query('status') || undefined, followUp: c.req.query('followUp') === '1', owing: c.req.query('owing') === '1',
     sort: c.req.query('sort'), dir: c.req.query('dir') === 'desc' ? 'desc' : 'asc', page: Number(c.req.query('page') || 1), pageSize: Number(c.req.query('pageSize') || 50), week: c.req.query('week') })));

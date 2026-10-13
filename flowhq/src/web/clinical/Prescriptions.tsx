@@ -64,7 +64,7 @@ function List() {
 }
 
 const blankForm = (today: string, patient: Form['patient'] = null): Form => ({ patient, rxDate: today, treatingPhysio: '', bp: '', vitals: '', history: '', examination: '', diagnosis: '', treatmentPlan: '', exercises: '', advice: '', followUpOn: '' });
-const fromRx = (r: Prescription): Form => ({ patient: { id: r.patientId, name: r.patientName }, rxDate: r.rxDate || '', treatingPhysio: r.treatingPhysio, bp: r.bp, vitals: r.vitals, history: r.history, examination: r.examination, diagnosis: r.diagnosis, treatmentPlan: r.treatmentPlan, exercises: r.exercises, advice: r.advice, followUpOn: r.followUpOn || '' });
+const fromRx = (r: Prescription): Form => ({ patient: { id: r.patientId, name: r.patientName }, rxDate: r.rxDate || '', treatingPhysio: r.treatingPhysio, bp: r.bp, vitals: r.vitals, history: r.history, examination: r.examination, diagnosis: r.diagnosis, treatmentPlan: [r.treatmentPlan, r.exercises].filter(Boolean).join('\n\n'), exercises: '', advice: r.advice, followUpOn: r.followUpOn || '' });
 
 function Editor({ rxId }: { rxId: string }) {
   const { ws } = useWs(); const nav = useNavigate(); const qc = useQueryClient(); const toast = useToast(); const today = useToday();
@@ -118,7 +118,7 @@ function Editor({ rxId }: { rxId: string }) {
   const save = useMutation({
     mutationFn: async () => {
       if (!f.patient) throw new Error('Choose the patient first');
-      const body = { patientId: f.patient.id, rxDate: f.rxDate || null, treatingPhysio: f.treatingPhysio, bp: f.bp, vitals: f.vitals, history: f.history, examination: f.examination, diagnosis: f.diagnosis, treatmentPlan: f.treatmentPlan, exercises: f.exercises, advice: f.advice, followUpOn: f.followUpOn || null };
+      const body = { patientId: f.patient.id, rxDate: f.rxDate || null, treatingPhysio: f.treatingPhysio, bp: f.bp, vitals: f.vitals, history: f.history, examination: f.examination, diagnosis: f.diagnosis, treatmentPlan: f.treatmentPlan, exercises: '', advice: f.advice, followUpOn: f.followUpOn || null };
       const dirtyForm = JSON.stringify(f) !== base;
       let rx: Prescription | null = null;
       if (isNew) rx = await api<Prescription>(wsPath(ws.id, '/prescriptions'), { method: 'POST', body });
@@ -170,8 +170,7 @@ function Editor({ rxId }: { rxId: string }) {
             <Field label="Clinical history" className="sm:col-span-2"><Textarea value={f.history} onChange={(e) => set('history', e.target.value)} rows={3} maxLength={4000} /></Field>
             <Field label="O/E: clinical examination findings" className="sm:col-span-2"><Textarea value={f.examination} onChange={(e) => set('examination', e.target.value)} rows={3} maxLength={4000} /></Field>
             <Field label="Diagnosis" className="sm:col-span-2" hint="Entered by the clinician"><Textarea value={f.diagnosis} onChange={(e) => set('diagnosis', e.target.value)} rows={2} maxLength={2000} /></Field>
-            <Field label="Physiotherapy treatment" className="sm:col-span-2"><Textarea value={f.treatmentPlan} onChange={(e) => set('treatmentPlan', e.target.value)} rows={3} maxLength={4000} /></Field>
-            <Field label="Exercises / treatment instructions" className="sm:col-span-2"><Textarea value={f.exercises} onChange={(e) => set('exercises', e.target.value)} rows={3} maxLength={4000} /></Field>
+            <Field label="Physiotherapy treatment, exercises & instructions" className="sm:col-span-2"><Textarea value={f.treatmentPlan} onChange={(e) => set('treatmentPlan', e.target.value)} rows={4} maxLength={4000} /></Field>
             <Field label="Advice" className="sm:col-span-2"><Textarea value={f.advice} onChange={(e) => set('advice', e.target.value)} rows={3} maxLength={4000} /></Field>
             <Field label="Follow-up date"><Input type="date" value={f.followUpOn} onChange={(e) => set('followUpOn', e.target.value)} /></Field>
           </div>

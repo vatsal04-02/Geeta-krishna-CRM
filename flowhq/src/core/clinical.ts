@@ -43,3 +43,19 @@ export interface ClinicProfile {
   clinicians: Array<{ name: string; qualifications: string; regNo: string; mobile: string }>;
   tax: { label: string; ratePercent: number } | null;
 }
+
+// The doctor's overview for the dashboard (computed from the clinic records; nothing here is stored).
+// Every tile: its value for the chosen range, the same measure for the period just before it (null when the records
+// do not reach back that far, or the measure has no history), and one value per day for the last 7 days.
+export type TileKey = 'seen' | 'followUps' | 'active' | 'newPatients' | 'prescriptions' | 'collected' | 'outstanding' | 'visits';
+export interface DoctorTile { value: number; previous: number | null; series: number[] }
+export interface DoctorSummary {
+  today: string; days: number; seriesDays: string[];
+  tiles: Record<TileKey, DoctorTile>;
+  collectedTodayPaise: number;
+  followUps: Array<{ patientId: string; name: string; phone: string; complaint: string; followUpOn: string; overdueDays: number }>;
+  todaysVisits: Array<{ patientId: string; name: string; status: VisitStatus }>;
+  recentPrescriptions: Array<{ rxId: string; patientId: string; patientName: string; rxDate: string | null; diagnosis: string }>;
+  owing: Array<{ patientId: string; name: string; outstandingPaise: number }>;
+  attendance: Array<{ date: string; attended: number }>;
+}

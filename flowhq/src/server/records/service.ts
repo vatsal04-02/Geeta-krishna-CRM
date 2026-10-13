@@ -2,6 +2,7 @@
 // Rules kept here (not in the UI): stable text ids, ids generated under a lock, integer paise, no deletes, finance is append-only,
 // invoices are final (void + re-issue), duplicate-submission keys, every write audited. Nothing here sends anything to a patient.
 import { computeTotals, MAX_PAISE, paymentStatus } from '../../core/money';
+import type { DoctorSummary } from '../../core/clinical';
 import { PAYMENT_METHODS, PATIENT_STATUSES, SEXES, VISIT_STATUSES, type ClinicProfile, type Invoice, type InvoiceInput, type Patient, type PatientList, type PatientProfile, type PatientRow, type Payment, type Prescription, type PrescriptionInput, type RxImage, type Visit, type VisitWeek, type VisitStatus } from '../../core/clinical';
 import { BackendError, type GristClient, type GristRecord } from '../grist';
 import { dayKey } from '../time';
@@ -368,6 +369,64 @@ export class RecordsService {
   }
 
   // ------------------------------------------------------------------ visits / attendance
+  // Doctor's overview: today's clinic, follow-ups, recent prescriptions and money, for the dashboard.
+  async doctorSummary(daysIn: number): Promise<DoctorSummary> {
+    const R = [1, 7, 30].includes(daysIn) ? daysIn : 7;
+    const today = this.today(); const from = addDays(today, -(R - 1)); const prevTo = addDays(from, -1); const prevFrom = addDays(from, -R);
+    const [pr, vis, invoices, rx] = await Promise.all([this.rows(RT.patients), this.rows(RT.visits), this.allInvoices(), this.latestRx()]);
+    const patients = pr.map((r) => this.toPatient(r)).filter((p) => p.patientId);
+    const name = new Map(patients.map((p) => [p.patientId, p.name]));
+    const visits = vis.map((r) => this.toVisit(r)).filter((v): v is NonNullable<typeof v> => !!v);
+    const live = invoices.filter((i) => i.status !== 'void');
+    const pays = live.flatMap((i) => i.payments).filter((p) => !p.voided && p.paidOn);
+    const inR = (d: string | null | undefined, a: string, b: string) => !!d && d >= a && d <= b;
+    // earliest date anything was recorded: a "previous period" only exists if the records reach back before it ended
+    const dates = [...patients.map((p) => p.registeredOn), ...visits.map((v) => v.date), ...live.map((i) => i.date), ...pays.map((p) => p.paidOn), ...rx.map((x) => x.rxDate)].filter((d): d is string => !!d);
+    const first = dates.length ? dates.reduce((m, d) => (d < m ? d : m)) : null;
+    const hasPrev = !!first && first <= prevTo;
+    const days7 = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
+    const attended = visits.filter((v) => v.status === 'Attended');
+    const count = <T,>(rows: T[], dateOf: (r: T) => string | null | undefined) => (a: string, b: string) => rows.filter((r) => inR(dateOf(r), a, b)).length;
+    const sum = <T,>(rows: T[], dateOf: (r: T) => string | null | undefined, amt: (r: T) => number) => (a: string, b: string) => rows.filter((r) => inR(dateOf(r), a, b)).reduce((t, r) => t + amt(r), 0);
+    const seenIn = (a: string, b: string) => new Set(attended.filter((v) => inR(v.date, a, b)).map((v) => v.patientId)).size;
+    const visitsIn = count(attended, (v) => v.date);
+    const newIn = count(patients, (p) => p.registeredOn);
+    const rxIn = count(rx, (x) => x.rxDate);
+    const paidIn = sum(pays, (p) => p.paidOn, (p) => p.amountPaise);
+    const owedAt = (d: string) => Math.max(0, live.filter((i) => (i.date || '') <= d).reduce((t, i) => t + i.totalPaise, 0) - pays.filter((p) => (p.paidOn || '') <= d).reduce((t, p) => t + p.amountPaise, 0));
+    const daily = (f: (a: string, b: string) => number) => days7.map((d) => f(d, d));
+    const active = patients.filter((p) => p.status === 'Active');
+    const horizon = addDays(today, 3);
+    const due = active.filter((p) => p.followUpOn && p.followUpOn <= horizon).sort((x, y) => ((x.followUpOn || '') < (y.followUpOn || '') ? -1 : 1));
+    const dueNow = due.filter((p) => (p.followUpOn || '') <= today);
+    const owingBy = new Map<string, number>();
+    for (const i of live) if (i.balancePaise > 0) owingBy.set(i.patientId, (owingBy.get(i.patientId) || 0) + i.balancePaise);
+    const dayDiff = (d: string) => Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${d}T00:00:00Z`)) / 86400000);
+    const todays = visits.filter((v) => v.date === today);
+    const span = Math.max(7, R);
+    const prev = (f: (a: string, b: string) => number) => (hasPrev ? f(prevFrom, prevTo) : null);
+    return {
+      today, days: R, seriesDays: days7,
+      tiles: {
+        seen: { value: seenIn(from, today), previous: prev(seenIn), series: days7.map((d) => seenIn(d, d)) },
+        followUps: { value: dueNow.length, previous: null, series: days7.map((d) => active.filter((p) => p.followUpOn === d).length) },
+        active: { value: active.length, previous: null, series: days7.map((d) => active.filter((p) => (p.registeredOn || '') <= d && p.registeredOn).length) },
+        newPatients: { value: newIn(from, today), previous: prev(newIn), series: daily(newIn) },
+        prescriptions: { value: rxIn(from, today), previous: prev(rxIn), series: daily(rxIn) },
+        collected: { value: paidIn(from, today), previous: prev(paidIn), series: daily(paidIn) },
+        outstanding: { value: [...owingBy.values()].reduce((t, v) => t + v, 0), previous: hasPrev ? owedAt(prevTo) : null, series: days7.map(owedAt) },
+        visits: { value: visitsIn(from, today), previous: prev(visitsIn), series: daily(visitsIn) },
+      },
+      collectedTodayPaise: paidIn(today, today),
+      followUps: due.slice(0, 8).map((p) => ({ patientId: p.patientId, name: p.name, phone: p.phone, complaint: p.mainComplaint, followUpOn: p.followUpOn as string, overdueDays: Math.max(0, dayDiff(p.followUpOn as string)) })),
+      todaysVisits: todays.map((v) => ({ patientId: v.patientId, name: name.get(v.patientId) || v.patientId, status: v.status })),
+      recentPrescriptions: rx.filter((x) => inR(x.rxDate, from, today)).sort((x, y) => ((y.rxDate || '') < (x.rxDate || '') ? -1 : (y.rxDate || '') > (x.rxDate || '') ? 1 : 0)).slice(0, 6)
+        .map((x) => ({ rxId: x.rxId, patientId: x.patientId, patientName: x.patientName, rxDate: x.rxDate, diagnosis: x.diagnosis })),
+      owing: [...owingBy.entries()].sort((x, y) => y[1] - x[1]).slice(0, 5).map(([id, v]) => ({ patientId: id, name: name.get(id) || id, outstandingPaise: v })),
+      attendance: Array.from({ length: span }, (_, i) => { const d = addDays(today, i - (span - 1)); return { date: d, attended: visitsIn(d, d) }; }),
+    };
+  }
+
   async visitsWeek(weekStart: string): Promise<VisitWeek> {
     const w0 = mondayOf(validDate(weekStart) ? weekStart : this.today()); const days = Array.from({ length: 7 }, (_, i) => addDays(w0, i));
     const [pr, vis] = await Promise.all([this.rows(RT.patients), this.rows(RT.visits)]);

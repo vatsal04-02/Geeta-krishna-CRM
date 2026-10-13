@@ -23,9 +23,9 @@ export function buildServer(env: NodeJS.ProcessEnv = process.env) {
   let users: UserRecord[];
   if (cfg.demo) {
     const { docs, profiles: seed } = demoDocs(Date.now());
-    // demo: empty Clinic Records tables for the demo PHYSIO clinic only (provisioning is per clinic; no seeded patients); anything entered lives in memory only
+    // demo: Clinic Records for the demo PHYSIO clinic only (provisioned per clinic): the fictional patients seeded by demo/fixtures; anything entered lives in memory only
     const physioDoc = String(docs.REGISTRY?.Clinics?.find((r) => r.fields.Clinic_Slug === 'demo-physio')?.fields.Grist_Doc_ID || '');
-    if (docs[physioDoc]) for (const t of RECORD_TABLE_NAMES) docs[physioDoc][t] = [];
+    if (docs[physioDoc]) for (const t of RECORD_TABLE_NAMES) docs[physioDoc][t] ||= [];
     const mem = memoryGrist(docs);
     adapter = createAutopilotAdapter({ gristBaseUrl: 'http://memory', gristApiKey: '', registryDocId: 'REGISTRY', timezone: cfg.timezone, locale: cfg.locale, currency: cfg.currency, fetchImpl: mem, clinic, cacheMs: 1000 });
     profiles = new ProfileStore(null, cfg.defaultIndustry, seed);

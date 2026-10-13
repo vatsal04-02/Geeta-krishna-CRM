@@ -61,10 +61,59 @@ const FLAVORS: Flavor[] = [
     settings: { clinic_name: 'Harbor Realty', open_time: '10:00', close_time: '18:00', working_days: 'daily', booking_link: 'https://cal.com/harbor-realty/site-visit', ai_mode: 'draft', outcome_checkin: 'off', review_requests: 'off', weekly_report_whatsapp: 'off', owner_phone: '+919000000903', TEST_MODE: 'true', TEST_PHONE: '+919000000997', booking_mode: 'link' },
   },
 ];
-const FIRST = ['Asha', 'Ravi', 'Neha', 'Vikram', 'Divya', 'Arjun', 'Kavya', 'Rahul', 'Sneha', 'Aditya', 'Pooja', 'Karthik', 'Ananya', 'Rohan', 'Isha', 'Manish', 'Lakshmi', 'Siddharth', 'Meghna', 'Varun', 'Nisha', 'Pranav', 'Tara', 'Gaurav', 'Riya', 'Harsh', 'Shreya', 'Nikhil', 'Aarti', 'Dev', 'Kiran', 'Sana', 'Yash', 'Zoya', 'Om', 'Leela', 'Abhay', 'Pia'];
-const LAST = ['Patel', 'Kumar', 'Sharma', 'Reddy', 'Nair', 'Iyer', 'Shah', 'Menon', 'Gupta', 'Rao', 'Joshi', 'Das', 'Pillai', 'Verma', 'Bose'];
+// Fictional full names (not real people). Indexed, so every lead in a demo business gets a believable Indian name.
+const NAMES = ['Ramesh Gupta', 'Sunita Sharma', 'Anil Verma', 'Meera Iyer', 'Suresh Patel', 'Kavita Nair', 'Rajesh Kumar', 'Pooja Mehta', 'Vikram Singh', 'Anita Reddy', 'Manoj Tiwari', 'Neha Joshi',
+  'Sanjay Mishra', 'Rekha Pillai', 'Deepak Chauhan', 'Priya Menon', 'Amit Shah', 'Lakshmi Rao', 'Harish Yadav', 'Seema Kapoor', 'Arvind Pandey', 'Geeta Bose', 'Mohan Das', 'Shweta Agarwal',
+  'Prakash Naidu', 'Usha Srivastava', 'Kiran Desai', 'Alok Saxena', 'Nirmala Krishnan', 'Rohit Malhotra', 'Savita Bhatt', 'Vinod Kulkarni', 'Pallavi Deshmukh', 'Sandeep Rathore', 'Asha Pawar',
+  'Gopal Sinha', 'Madhuri Jain', 'Tarun Bansal', 'Farida Khan', 'Imran Qureshi'];
 
 function rng(seed: number) { let s = seed; return () => { s = (s * 1103515245 + 12345) % 2147483648; return s / 2147483648; }; }
+
+
+// Clinic Records for the physiotherapy demo business, so demo mode shows the doctor dashboard, register, prescriptions and invoices.
+// All fictional; dates are relative to "now" so the dashboard always has a live-looking week.
+function clinicRecords(nowMs: number, staff: string[]): Record<string, GristRecord[]> {
+  const D = 86400; const today = Math.floor(nowMs / 1000 / D) * D;
+  const day = (offset: number) => today + offset * D;
+  const t = Math.floor(nowMs / 1000);
+  const P = [
+    // name, phone, age, sex, complaint, registered (days ago), follow-up offset in days (null = none), status
+    ['Ramesh Gupta', '+919000010001', '52', 'Male', 'Lower back pain', 28, -2, 'Active'],
+    ['Sunita Sharma', '+919000010002', '47', 'Female', 'Frozen shoulder (right)', 21, 0, 'Active'],
+    ['Anil Verma', '+919000010003', '61', 'Male', 'Knee osteoarthritis, stiffness after walking', 18, 2, 'Active'],
+    ['Meera Iyer', '+919000010004', '34', 'Female', 'Neck pain, long desk hours', 12, null, 'Active'],
+    ['Suresh Patel', '+919000010005', '58', 'Male', 'Sciatica, left leg', 9, -5, 'Active'],
+    ['Kavita Nair', '+919000010006', '29', 'Female', 'Ankle sprain, rehab', 6, 1, 'Active'],
+    ['Rajesh Kumar', '+919000010007', '66', 'Male', 'Post knee replacement rehab', 33, null, 'Completed'],
+    ['Pooja Mehta', '+919000010008', '41', 'Female', 'Plantar fasciitis', 3, 3, 'Active'],
+    ['Vikram Singh', '+919000010009', '38', 'Male', 'Tennis elbow', 2, null, 'Active'],
+    ['Anita Reddy', '+919000010010', '55', 'Female', 'Cervical spondylosis', 1, 6, 'Active'],
+  ] as const;
+  const id = (i: number) => `GK-P-${String(i + 1).padStart(6, '0')}`;
+  const patients: GristRecord[] = P.map((p, i) => ({ id: i + 1, fields: { Patient_ID: id(i), Serial_No: i + 1, Name: p[0], Phone: p[1], Address: 'Gomti Nagar, Lucknow', Age: p[2], Sex: p[3], Referred_By: i % 3 === 0 ? 'Self' : 'Dr. Tandon', Occupation: '',
+    Main_Complaint: p[4], Registered_On: day(-p[5]), Status: p[7], Follow_Up_On: p[6] === null ? null : day(p[6]), Source_Lead_ID: '', Notes: '', Created_At: day(-p[5]) + 36000, Created_By: staff[0] } }));
+  // attendance: recent days busiest, plus one missed and one cancelled visit today
+  const visits: GristRecord[] = []; let vid = 0;
+  const visit = (pi: number, off: number, st: string) => visits.push({ id: ++vid, fields: { Patient_ID: id(pi), Visit_Date: day(off), Status: st, Notes: '', Recorded_By: staff[0], Created_At: day(off) + 39600 } });
+  const plan: Array<[number, number[]]> = [[0, [-6, -4, -2, -1]], [1, [-6, -3, -1, 0]], [2, [-5, -2, 0]], [3, [-4, -1]], [4, [-6, -5, -3]], [5, [-3, -1, 0]], [7, [-1, 0]], [8, [0]], [9, [-1]]];
+  for (const [pi, offs] of plan) for (const o of offs) visit(pi, o, 'Attended');
+  visit(2, -1, 'Missed'); visit(3, 0, 'Cancelled'); visit(0, 0, 'Missed');
+  const rx = [[0, -6, 'Lumbar strain with muscle spasm', 'Hot pack, TENS, core strengthening'], [1, -6, 'Adhesive capsulitis, right shoulder', 'Ultrasound, pendulum and wall-crawl exercises'],
+    [2, -5, 'Knee osteoarthritis grade II', 'Quadriceps strengthening, ultrasound, knee mobilisation'], [4, -5, 'Sciatica, L5-S1 radiculopathy', 'Traction, nerve gliding, core stability'],
+    [5, -3, 'Grade II lateral ankle sprain', 'RICE, peroneal strengthening, balance training'], [7, -1, 'Plantar fasciitis', 'Calf stretching, ultrasound, footwear advice']] as const;
+  const prescriptions: GristRecord[] = rx.map((r, i) => ({ id: i + 1, fields: { Rx_ID: `RX-${String(i + 1).padStart(6, '0')}`, Version: 1, Patient_ID: id(r[0]), Rx_Date: day(r[1]), Treating_Physio: staff[0], BP: '120/80', Vitals: '',
+    History: '', Examination: '', Diagnosis: r[2], Treatment_Plan: r[3], Exercises: '', Advice: 'Avoid heavy lifting for two weeks.', Follow_Up_On: null, Created_At: day(r[1]) + 40000, Created_By: staff[0] } }));
+  // invoices: a session is Rs 800; some paid in full, some part-paid, some unpaid
+  const inv: Array<[number, number, number, number]> = [[0, -6, 3200, 3200], [1, -6, 2400, 2400], [2, -5, 1600, 800], [4, -5, 2400, 0], [5, -3, 1600, 1600], [3, -4, 1600, 1600], [7, -1, 800, 800], [0, -1, 1600, 0]];
+  const invoices: GristRecord[] = []; const lines: GristRecord[] = []; const payments: GristRecord[] = []; let pid = 0;
+  inv.forEach(([pi, off, total, paid], i) => {
+    const no = `GK-${new Date(day(off) * 1000).getUTCFullYear()}-${String(i + 1).padStart(6, '0')}`;
+    invoices.push({ id: i + 1, fields: { Invoice_No: no, Patient_ID: id(pi), Invoice_Date: day(off), Status: 'issued', Subtotal_Paise: total * 100, Discount_Paise: 0, Tax_Paise: 0, Total_Paise: total * 100, Tax_Label: '', Tax_Rate_Bp: 0, Notes: '', Void_Reason: '', Idem_Key: `demo-${i}`, Created_At: day(off) + 41000, Created_By: staff[0] } });
+    lines.push({ id: i + 1, fields: { Invoice_No: no, Line_No: 1, Description: 'Physiotherapy session', Qty: total / 800, Unit_Price_Paise: 80000, Line_Total_Paise: total * 100 } });
+    if (paid > 0) { ++pid; payments.push({ id: pid, fields: { Payment_ID: `PAY-${String(pid).padStart(6, '0')}`, Invoice_No: no, Patient_ID: id(pi), Paid_On: day(off), Amount_Paise: paid * 100, Method: pid % 2 ? 'UPI' : 'Cash', Reference: '', Notes: '', Voided: false, Void_Reason: '', Idem_Key: `demo-p-${pid}`, Created_At: Math.min(t, day(off) + 42000), Created_By: staff[0] } }); }
+  });
+  return { Patients: patients, Visits: visits, Prescriptions: prescriptions, Rx_Images: [], Invoices: invoices, Invoice_Lines: lines, Payments: payments, Audit_Log: [] };
+}
 
 export function demoDocs(nowMs: number) {
   const now = Math.floor(nowMs / 60000) * 60;   // seconds, on the minute
@@ -82,7 +131,7 @@ export function demoDocs(nowMs: number) {
     const N = 38;
     for (let i = 1; i <= N; i++) {
       const created = now - Math.floor((i / N) * 20 * D + r() * 8 * H);
-      const name = `${FIRST[(i * 7 + fi * 3) % FIRST.length]} ${LAST[(i * 5 + fi) % LAST.length]}`;
+      const name = NAMES[(i * 7 + fi * 3) % NAMES.length]!;
       const phone = `+9190000${String(fi * 100 + i).padStart(5, '0')}`;
       const src = i % 4 === 0 ? 'Website' : i % 9 === 0 ? 'Instagram' : 'WhatsApp';
       const statusRoll = r();
@@ -157,7 +206,7 @@ export function demoDocs(nowMs: number) {
     const metrics = clinicModules.cmWeeklyMetrics({ leads, appointments: appts, conversations: convs, messages: msgs, runlog: logs }, nowMs, win, { messages: 5000, runlog: 5000 });
     const rep = clinicModules.cmRenderReport(metrics, { summary: '', observations: [], recommendations: [], dropped: 0, error: 'demo data: no AI call' }, fl.name, win, !!fl.settings.review_link);
     log('W9-weekly-report', rep.text, Math.min(now - 60, win.end + 9 * H), 'ok', 'AI text not used: demo data: no AI call');
-    docs[fl.doc] = { Settings: settings, LEADS: leads, Appointments: appts, Conversations: convs, Messages: msgs, Run_Log: logs, Knowledge: knowledge };
+    docs[fl.doc] = { Settings: settings, LEADS: leads, Appointments: appts, Conversations: convs, Messages: msgs, Run_Log: logs, Knowledge: knowledge, ...(fl.slug === 'demo-physio' ? clinicRecords(nowMs, fl.staff) : {}) };
   });
   const profiles: Record<string, WorkspaceProfile> = Object.fromEntries(FLAVORS.map((f) => [f.slug, f.profile]));
   return { docs, profiles };

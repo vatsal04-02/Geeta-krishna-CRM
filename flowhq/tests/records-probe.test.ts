@@ -9,7 +9,7 @@ import { RECORD_TABLE_NAMES } from '../src/server/records/schema';
 const build = (withTables: boolean) => {
   const d = demoDocs(Date.UTC(2026, 9, 7, 6, 30));
   const doc = d.docs.REGISTRY!.Clinics!.find((r) => r.fields.Clinic_Slug === 'demo-physio')!.fields.Grist_Doc_ID as string;
-  if (withTables) for (const t of RECORD_TABLE_NAMES) d.docs[doc]![t] = [];
+  for (const t of RECORD_TABLE_NAMES) { if (withTables) d.docs[doc]![t] = []; else delete d.docs[doc]![t]; }   // the demo physio business ships with records, so "without" must remove them
   const mem = memoryGrist(d.docs);
   const slow: typeof mem = Object.assign(async (u: string, i?: Parameters<typeof mem>[1]) => { await new Promise((r) => setTimeout(r, 15)); return mem(u, i); }, { docs: mem.docs, calls: mem.calls }) as never;
   return { adapter: createAutopilotAdapter({ gristBaseUrl: 'http://memory', gristApiKey: 'k', registryDocId: 'REGISTRY', timezone: 'Asia/Kolkata', locale: 'en-IN', currency: 'INR', fetchImpl: slow, cacheMs: 0 }), mem };

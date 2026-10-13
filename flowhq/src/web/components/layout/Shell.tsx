@@ -2,8 +2,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronsUpDown, LogOut, Menu, Moon, Search, Sun, X } from 'lucide-react';
-import { MODULES } from '@core/registry';
+import { Check, ChevronDown, ChevronsUpDown, LogOut, Menu, Moon, Search, Sun, X } from 'lucide-react';
+import { MODULES, NAV_GROUPS } from '@core/registry';
 import { BRAND } from '@core/brand';
 import type { ModuleKey } from '@core/domain';
 import { useWs } from '../../lib/workspace';
@@ -53,20 +53,41 @@ function WorkspaceSwitcher() {
   );
 }
 
+function useOpenGroups() {
+  const read = (): Record<string, boolean> => { try { return JSON.parse(localStorage.getItem('fhq-nav') || '{}') as Record<string, boolean>; } catch { return {}; } };
+  const [closed, setClosed] = useState<Record<string, boolean>>(read);
+  const toggle = (k: string) => setClosed((c) => { const n = { ...c, [k]: !c[k] }; try { localStorage.setItem('fhq-nav', JSON.stringify(n)); } catch { /* private mode */ } return n; });
+  return { isOpen: (k: string) => !closed[k], toggle };
+}
+
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { ws, tt } = useWs();
-  const items = ws.modules.filter((m) => MODULES[m].page !== null).sort((a, b) => MODULES[a].order - MODULES[b].order);
-  const main = items.filter((m) => m !== 'settings');
+  const g = useOpenGroups();
+  const on = (m: ModuleKey) => ws.modules.includes(m) && MODULES[m].page !== null;
+  const byOrder = (a: ModuleKey, b: ModuleKey) => MODULES[a].order - MODULES[b].order;
+  const grouped = new Set<ModuleKey>(NAV_GROUPS.flatMap((x) => x.modules));
+  // anything enabled that no section names (a future module) still shows, under System
+  const strays = ws.modules.filter((m) => on(m) && m !== 'dashboard' && !grouped.has(m)).sort(byOrder);
+  const item = (m: ModuleKey) => <NavItem key={m} to={pagePath(ws.id, m)} label={tt(MODULES[m].label)} iconName={MODULES[m].icon} end={m === 'dashboard'} onNavigate={onNavigate} shortcut={MODULES[m].shortcut} />;
   return (
-    <nav className="flex h-full flex-col gap-4 border-r border-line bg-bg-2 px-3 py-4" aria-label="Main">
+    <nav className="flex h-full flex-col gap-3 overflow-y-auto border-r border-line bg-bg-2 px-3 py-4" aria-label="Main">
       <div className="px-2 pt-1"><Logo /></div>
-      <ul className="mt-2 space-y-0.5">
-        {main.map((m) => <NavItem key={m} to={pagePath(ws.id, m)} label={tt(MODULES[m].label)} iconName={MODULES[m].icon} end={m === 'dashboard'} onNavigate={onNavigate} shortcut={MODULES[m].shortcut} />)}
-      </ul>
-      <div className="mt-auto space-y-3">
-        <ul><NavItem to={pagePath(ws.id, 'settings')} label="Settings" iconName="settings" onNavigate={onNavigate} shortcut={MODULES.settings.shortcut} /></ul>
-        <WorkspaceSwitcher />
-      </div>
+      {on('dashboard') && <ul className="mt-1">{item('dashboard')}</ul>}
+      {NAV_GROUPS.map((grp) => {
+        const mods = [...grp.modules.filter(on), ...(grp.key === 'system' ? strays : [])];   // the section's own order, as listed
+        if (!mods.length) return null;
+        const open = g.isOpen(grp.key);
+        return (
+          <div key={grp.key}>
+            <button type="button" onClick={() => g.toggle(grp.key)} aria-expanded={open} aria-controls={`nav-${grp.key}`}
+              className="flex w-full items-center justify-between rounded-md px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted transition-colors hover:text-fg-2">
+              <span>{grp.label}</span><ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-150', !open && '-rotate-90')} />
+            </button>
+            {open && <ul id={`nav-${grp.key}`} className="mt-0.5 space-y-0.5">{mods.map(item)}</ul>}
+          </div>
+        );
+      })}
+      <div className="mt-auto"><WorkspaceSwitcher /></div>
     </nav>
   );
 }

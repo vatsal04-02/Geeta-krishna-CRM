@@ -33,6 +33,12 @@ export const MODULES: Record<ModuleKey, ModuleDef> = {
   campaigns: { key: 'campaigns', core: false, label: 'Campaigns', page: null, icon: 'megaphone', order: 61 },
   forms: { key: 'forms', core: false, label: 'Forms', page: null, icon: 'file-text', order: 62 },
 };
+// Sidebar sections: the dashboard stays pinned at the top; everything else is grouped. A module that is not enabled simply does not show.
+export const NAV_GROUPS: Array<{ key: string; label: string; modules: ModuleKey[] }> = [
+  { key: 'care', label: 'Care', modules: ['inbox', 'contacts', 'patients', 'bookings', 'prescriptions', 'visits'] },
+  { key: 'money', label: 'Money', modules: ['invoices'] },
+  { key: 'system', label: 'System', modules: ['automations', 'tasks', 'reports', 'activity', 'ai', 'settings'] },
+];
 export const CORE_MODULES = (Object.values(MODULES).filter((m) => m.core).map((m) => m.key));
 
 // ---------------------------------------------------------------- automations (the universal catalogue)
