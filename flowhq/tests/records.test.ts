@@ -70,6 +70,18 @@ describe('patients', () => {
     expect(docs.D!.Patients).toHaveLength(1);
     expect((await svc.createPatient({ name: 'Different Name', phone: '9876543210' }, STAFF, true)).patientId).toBe('GK-P-000002');
   });
+  it('editing warns only about what the edit changes (a known duplicate is not nagged about on every save)', async () => {
+    const { svc } = setup();
+    await patient(svc, 'Twin One', '9000000001');
+    const twin = await svc.createPatient({ name: 'Twin Two', phone: '9000000001' }, STAFF, true);          // registered on purpose: same phone as Twin One
+    await patient(svc, 'Third Person', '9000000003');
+    // the edit form sends the whole record: unchanged name and phone, changed notes -> no warning
+    expect((await svc.updatePatient(twin.patientId, { name: 'Twin Two', phone: '9000000001', notes: 'edited', occupation: 'Teacher' }, STAFF)).notes).toBe('edited');
+    // changing the phone TO another patient's number, or the name TO another patient's name, does warn
+    expect(await code(svc.updatePatient(twin.patientId, { name: 'Twin Two', phone: '9000000003' }, STAFF))).toBe('possible_duplicate');
+    expect(await code(svc.updatePatient(twin.patientId, { name: 'third person' }, STAFF))).toBe('possible_duplicate');
+    expect((await svc.updatePatient(twin.patientId, { name: 'third person', phone: '9000000009' }, STAFF, true)).name).toBe('third person');   // confirmed
+  });
   it('searches by name, phone digits and id; sorts; paginates; filters', async () => {
     const { svc } = setup();
     for (const [n, p] of [['Charu Test', '9000000001'], ['Anil Test', '9000000002'], ['Bina Test', '9000000003']] as const) await patient(svc, n, p);

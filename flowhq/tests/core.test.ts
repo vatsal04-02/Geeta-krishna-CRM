@@ -90,3 +90,29 @@ describe('module resolution', () => {
     expect(r.dashboardMetrics).not.toContain('bookings');
   });
 });
+
+describe('clinic records modules', () => {
+  const base = { modules: [] as never[], automations: [] as never[], metrics: [] as never[] };
+  const RECORDS = ['patients', 'prescriptions', 'invoices', 'visits'] as const;
+  const withRecords = { ...base, modules: [...RECORDS] as never[] };
+  it('switch on for ANY industry once the backend has the records tables (e.g. the shipped default industry "clinic")', () => {
+    for (const industry of ['clinic', 'physiotherapy', 'custom'] as const) {
+      const r = resolveProfile({ industry }, withRecords);
+      expect(r.modules).toEqual(expect.arrayContaining([...RECORDS]));
+      expect(r.terminology.contact.plural).toBe(industry === 'custom' ? 'Contacts' : 'Enquiries');   // leads are never also called "Patients" (custom never did)
+    }
+  });
+  it('stay off, and change nothing, where the backend has no records tables', () => {
+    const r = resolveProfile({ industry: 'clinic' }, base);
+    expect(r.modules.some((m) => (RECORDS as readonly string[]).includes(m))).toBe(false);
+    expect(r.terminology.contact.plural).toBe('Patients');
+  });
+  it('respect the workspace: an explicit rename wins, a disabled module stays off', () => {
+    expect(resolveProfile({ industry: 'clinic', terminology: { contact: { singular: 'Lead', plural: 'Leads' } } }, withRecords).terminology.contact.plural).toBe('Leads');
+    const r = resolveProfile({ industry: 'clinic', modules: { disable: ['invoices'] } }, withRecords);
+    expect(r.modules).not.toContain('invoices'); expect(r.modules).toContain('patients');
+  });
+  it('do not rename industries that never call leads "Patients"', () => {
+    expect(resolveProfile({ industry: 'salon' }, withRecords).terminology.contact.plural).toBe('Clients');
+  });
+});

@@ -140,8 +140,12 @@ export class RecordsService {
       if (!row) throw bad('not_found', 'Patient not found', 404);
       const { fields } = this.cleanPatient(input);
       if (!Object.keys(fields).length) throw bad('invalid', 'Nothing to change');
-      if ((fields.Name !== undefined || fields.Phone !== undefined) && !confirmDuplicate) {
-        const dup = this.dupes(all.map((r) => this.toPatient(r)), s(fields.Name ?? row.fields.Name), s(fields.Phone ?? row.fields.Phone), patientId);
+      // warn only about what this edit CHANGES: the edit form always sends the whole record, and a patient already registered as a
+      // known duplicate must not be warned again for an unrelated edit (a note, an address) or for unchanged name / phone
+      const nameChanged = fields.Name !== undefined && fields.Name !== s(row.fields.Name);
+      const phoneChanged = fields.Phone !== undefined && fields.Phone !== s(row.fields.Phone);
+      if ((nameChanged || phoneChanged) && !confirmDuplicate) {
+        const dup = this.dupes(all.map((r) => this.toPatient(r)), nameChanged ? s(fields.Name) : '', phoneChanged ? s(fields.Phone) : '', patientId);
         if (dup.length) throw bad('possible_duplicate', 'Another patient has the same phone number or name', 409, { matches: dup });
       }
       await this.patch(RT.patients, row.id, fields);

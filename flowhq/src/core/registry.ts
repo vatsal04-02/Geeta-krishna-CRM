@@ -120,12 +120,17 @@ export interface WorkspaceProfileInput {
   modules?: { enable?: ModuleKey[]; disable?: ModuleKey[] };
   dashboardMetrics?: MetricKey[];
 }
+const RECORDS_MODULES: ModuleKey[] = ['patients', 'prescriptions', 'invoices', 'visits'];
 export function resolveProfile(input: WorkspaceProfileInput, supported: { modules: ModuleKey[]; automations: AutomationKey[]; metrics: MetricKey[] }) {
   const p = INDUSTRIES[input.industry] || INDUSTRIES.custom;
-  const terminology = mergeTerminology(p.terminology, input.terminology);
-  const wanted = new Set<ModuleKey>([...CORE_MODULES, ...p.modules, ...(input.modules?.enable || [])]);
+  let terminology = mergeTerminology(p.terminology, input.terminology);
+  // Clinic records (patients, prescriptions, invoices, attendance) are an explicit opt-in: they exist only where the clinic's data has the
+  // Clinic Records tables, so they switch on whatever industry the workspace defaults to (a workspace may still disable them).
+  const wanted = new Set<ModuleKey>([...CORE_MODULES, ...p.modules, ...(input.modules?.enable || []), ...RECORDS_MODULES.filter((m) => supported.modules.includes(m))]);
   for (const m of input.modules?.disable || []) if (!MODULES[m].core) wanted.delete(m);
   const modules = [...wanted].filter((m) => MODULES[m].core || supported.modules.includes(m)).sort((a, b) => MODULES[a].order - MODULES[b].order);
+  // With a real patient register, enquiries (leads) must never also be called "Patients". An explicit rename by the workspace wins.
+  if (modules.includes('patients') && !input.terminology?.contact && terminology.contact.plural.toLowerCase() === 'patients') terminology = { ...terminology, contact: { singular: 'Enquiry', plural: 'Enquiries' } };
   const automations = supported.automations.filter((a) => modules.includes(AUTOMATIONS[a].module)).sort((a, b) => AUTOMATIONS[a].order - AUTOMATIONS[b].order);
   const dashboardMetrics = (input.dashboardMetrics || p.dashboardMetrics).filter((m) => supported.metrics.includes(m) && modules.includes(METRICS[m].module === 'dashboard' ? 'dashboard' : METRICS[m].module));
   return { terminology, modules, automations, dashboardMetrics };

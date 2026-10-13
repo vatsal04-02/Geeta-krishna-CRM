@@ -126,5 +126,19 @@ Who did what, when. Never contains clinical text or image data.
 | Record | Text | the stable id |
 | Summary | Text | short, non-clinical |
 
-## Access (set in Grist by the agency)
-FLOW HQ reads and writes with its own API key. In Grist itself make these tables read-only for the front desk, so staff change them through the app.
+## Access (set in Grist by the agency): verified recipe
+FLOW HQ writes with the API key of its own Grist user (the "service user", an **editor** of the clinic doc, read access to the registry doc). Left alone, every
+front-desk **editor** can create, change and delete rows in these tables directly in Grist (verified: before the rules below, an editor's write succeeded).
+So, in the clinic doc: **Access Rules** > add a table rule for each of the 8 tables above, with these two rules **in this order**:
+
+| # | Condition (Advanced) | Permissions |
+|---|---|---|
+| 1 | `user.Email == "<the FLOW HQ service user's email>"` | allow all (Read, Create, Update, Delete) |
+| 2 | `user.Access != "owners"` | **deny** Create, Update, Delete (leave Read allowed) |
+
+Result (verified on a real Grist with header identities, 24 checks): front-desk editors, viewers and anyone not signed in **cannot create, update or delete** a row in any of the 8 tables
+(HTTP 403), cannot add a photo record, and cannot read as an anonymous user; they can still **read** the register (editors, viewers); the service user and doc owners can still write;
+front desk can still edit Leads / Messages as before, so nothing else changes. Photos are Grist attachments referenced by `Rx_Images.File`: with writes denied, nobody but FLOW HQ
+(or an owner) can attach or swap one.
+These exact formulas were the ones tested (rules created through Grist's `_grist_ACLRules`, the same table the Access Rules page edits). After setting them, try one write as a front-desk login before relying on them.
+FLOW HQ itself adds its own layer on top (sign-in, CSRF, per-workspace access, admin-only voiding), but Grist remains reachable by anyone with a Grist login, so these rules matter.

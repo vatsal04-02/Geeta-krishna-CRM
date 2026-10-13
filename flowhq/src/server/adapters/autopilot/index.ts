@@ -91,8 +91,16 @@ class AutopilotWorkspace implements WorkspaceBackend {
 
   records() { return this.recordsSvc; }
   // The clinical modules appear only when ALL Clinic Records tables exist in this clinic's doc (npm run provision-records creates them).
-  async probeRecords(): Promise<void> {
-    if (Date.now() - this.probedAt < 60000) return;
+  // Concurrent requests share one probe: a request that arrives while the first probe is still running waits for its answer
+  // (without this, the first page load after a restart could be served a workspace without the clinical pages).
+  private probing: Promise<void> | null = null;
+  probeRecords(): Promise<void> {
+    if (this.probing) return this.probing;
+    if (Date.now() - this.probedAt < 60000) return Promise.resolve();
+    this.probing = this.runProbe().finally(() => { this.probing = null; });
+    return this.probing;
+  }
+  private async runProbe(): Promise<void> {
     this.probedAt = Date.now();
     const missing: string[] = []; let unreachable = false;
     await Promise.all(RECORD_TABLE_NAMES.map(async (t) => { try { await this.grist.records(this.docId, t, { limit: 1 }); } catch (e) { if (e instanceof BackendError && e.status === 404) missing.push(t); else unreachable = true; } }));

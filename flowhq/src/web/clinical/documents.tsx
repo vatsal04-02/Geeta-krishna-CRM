@@ -70,8 +70,8 @@ export function PrescriptionDocument({ clinic, rx, patient, imageUrl }: { clinic
       <Section label="Physiotherapy treatment" text={[rx.treatmentPlan, rx.exercises && `Exercises / instructions:\n${rx.exercises}`].filter(Boolean).join('\n\n')} />
       <Section label="Advice" text={[rx.advice, rx.followUpOn && `Follow-up: ${fdate(rx.followUpOn)}`].filter(Boolean).join('\n\n')} />
       {rx.images.length > 0 && (
-        <section className="mt-2.5">
-          <h3 className="keep border-b border-black pb-0.5 text-[9.5pt] font-bold uppercase tracking-wider">Attached photographs</h3>
+        <section className="keep mt-2.5">
+          <h3 className="border-b border-black pb-0.5 text-[9.5pt] font-bold uppercase tracking-wider">Attached photographs</h3>
           <div className="mt-2 grid grid-cols-2 gap-3">
             {rx.images.map((im) => <figure key={im.imageId} className="keep m-0"><img src={imageUrl(im.imageId)} alt={im.caption || 'Clinical photograph'} className="max-h-[52mm] w-full border border-black/50 object-contain" />{im.caption && <figcaption className="mt-0.5 text-[9pt]">{im.caption}</figcaption>}</figure>)}
           </div>
@@ -97,7 +97,7 @@ export function InvoiceDocument({ clinic, inv, patient }: { clinic: ClinicProfil
         <Cell k="Patient:" v={patient.name} /><Cell k="Patient ID:" v={patient.patientId} />
         <Cell k="Contact:" v={patient.phone} /><Cell k="Address:" v={patient.address} />
       </div>
-      <table className="keep mt-4 w-full border-collapse text-[10.5pt]">
+      <table className="mt-4 w-full border-collapse text-[10.5pt]">
         <thead><tr className="border-y-2 border-black text-left text-[9.5pt] uppercase tracking-wide"><th className="w-8 py-1.5">#</th><th className="py-1.5">Service / treatment</th><th className="w-14 py-1.5 text-right">Qty</th><th className="w-28 py-1.5 text-right">Unit price</th><th className="w-28 py-1.5 text-right">Amount</th></tr></thead>
         <tbody>{inv.lines.map((l) => <tr key={l.lineNo} className="keep border-b border-black/30 align-top"><td className="py-1.5">{l.lineNo}</td><td className="whitespace-pre-wrap break-words py-1.5 pr-2">{l.description}</td><td className="num py-1.5 text-right">{l.qty}</td><td className="num py-1.5 text-right">{rs(l.unitPaise)}</td><td className="num py-1.5 text-right">{rs(l.totalPaise)}</td></tr>)}</tbody>
       </table>
