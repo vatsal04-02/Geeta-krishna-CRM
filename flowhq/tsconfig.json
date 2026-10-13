@@ -15,8 +15,7 @@
     "isolatedModules": true,
     "allowJs": false,
     "types": ["node", "vite/client"],
-    "baseUrl": ".",
-    "paths": { "@core/*": ["src/core/*"], "@web/*": ["src/web/*"] }
+    "paths": { "@core/*": ["./src/core/*"], "@web/*": ["./src/web/*"] }
   },
   "include": ["src", "tests", "vite.config.ts", "vitest.config.ts"]
 }
