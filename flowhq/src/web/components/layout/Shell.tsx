@@ -1,9 +1,10 @@
-// The FLOW HQ shell: black sidebar, blue active states, top bar with command palette, theme and account.
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+// The app shell: cream sidebar, green active states, top bar with command palette, theme and account.
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronsUpDown, LogOut, Menu, Moon, Search, Sun, X } from 'lucide-react';
 import { MODULES } from '@core/registry';
+import { BRAND } from '@core/brand';
 import type { ModuleKey } from '@core/domain';
 import { useWs } from '../../lib/workspace';
 import { useTheme } from '../../lib/theme';
@@ -14,16 +15,10 @@ import { Avatar, Badge, Kbd } from '../ui/primitives';
 import { CommandPalette } from './CommandPalette';
 
 export function Logo({ compact }: { compact?: boolean }) {
-  const gid = `fhq-g${useId().replace(/:/g, '')}`;   // unique: a hidden copy of the logo must not own the gradient
   return (
     <div className="flex items-center gap-2.5">
-      <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true" className="drop-shadow-[0_0_12px_rgb(var(--blue)/0.55)]">
-        <defs><linearGradient id={gid} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#3B8DFF" /><stop offset="1" stopColor="#1677FF" /></linearGradient></defs>
-        <rect width="32" height="32" rx="8" fill="#0D111A" stroke="#1D2735" />
-        <path d="M8 10.5h11.5a3.5 3.5 0 0 1 0 7H13a3.5 3.5 0 0 0 0 7h11" fill="none" stroke={`url(#${gid})`} strokeWidth="3" strokeLinecap="round" />
-        <circle cx="24" cy="24.5" r="2" fill="#7DB2FF" />
-      </svg>
-      {!compact && <span className="text-[15px] font-semibold tracking-tight">FLOW <span className="text-blue-bright">HQ</span></span>}
+      <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-blue-bright font-display text-[15px] font-bold tracking-wide text-[#F8F5EC]">{BRAND.monogram}</span>
+      {!compact && <span className="leading-tight"><span className="block font-display text-[15px] font-semibold tracking-tight">{BRAND.short}</span><span className="block text-[9.5px] font-semibold tracking-[0.22em] text-muted">{BRAND.sub}</span></span>}
     </div>
   );
 }
@@ -160,7 +155,7 @@ export function Page({ title, subtitle, actions, children, wide }: { title: Reac
   return (
     <div className={cn('mx-auto w-full animate-fade-up px-4 pb-12 pt-6 md:px-8', wide ? 'max-w-[1680px]' : 'max-w-[1400px]')}>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0"><h1 className="text-[22px] font-semibold tracking-tight">{title}</h1>{subtitle && <p className="mt-1 text-sm text-fg-2">{subtitle}</p>}</div>
+        <div className="min-w-0"><h1 className="text-[26px] font-semibold tracking-tight">{title}</h1>{subtitle && <p className="mt-1 text-sm text-fg-2">{subtitle}</p>}</div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
       {children}

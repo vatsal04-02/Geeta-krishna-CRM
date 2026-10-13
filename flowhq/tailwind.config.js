@@ -1,4 +1,4 @@
-/** FLOW HQ design tokens live in src/web/styles.css (CSS variables, dark + light); Tailwind only points at them. */
+/** Design tokens live in src/web/styles.css (CSS variables, dark + light); Tailwind only points at them. */
 const v = (name) => `rgb(var(--${name}) / <alpha-value>)`;
 export default {
   content: ['./index.html', './src/web/**/*.{ts,tsx}'],
@@ -10,14 +10,15 @@ export default {
         line: v('line'), 'line-2': v('line-2'),
         fg: v('fg'), 'fg-2': v('fg-2'), muted: v('muted'),
         blue: { DEFAULT: v('blue'), bright: v('blue-bright'), soft: v('blue-soft') },
+        accent: { DEFAULT: v('accent'), strong: v('accent-strong') }, sage: v('sage'),
         ok: v('ok'), warn: v('warn'), bad: v('bad'),
       },
-      fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Roboto', 'sans-serif'], mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'] },
-      borderRadius: { xl: '14px', '2xl': '18px' },
+      fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Roboto', 'sans-serif'], display: ['"Playfair Display"', 'Georgia', 'serif'], mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'] },
+      borderRadius: { xl: '12px', '2xl': '16px' },
       boxShadow: {
-        glow: '0 0 0 1px rgb(var(--blue) / 0.35), 0 0 24px -4px rgb(var(--blue) / 0.35)',
-        card: '0 1px 0 0 rgb(255 255 255 / 0.02) inset, 0 8px 24px -12px rgb(0 0 0 / 0.5)',
-        pop: '0 24px 64px -16px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(var(--line))',
+        glow: '0 0 0 1px rgb(var(--blue) / 0.35), 0 6px 20px -8px rgb(var(--blue) / 0.35)',
+        card: 'var(--shadow-card)',
+        pop: 'var(--shadow-pop)',
       },
       keyframes: {
         'fade-up': { from: { opacity: 0, transform: 'translateY(4px)' }, to: { opacity: 1, transform: 'none' } },

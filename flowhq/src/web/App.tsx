@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, type ReactElement } from 'react';
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ModuleKey, Workspace } from '@core/domain';
+import { BRAND } from '@core/brand';
 import { api, ws as wsPath, type ApiError } from './lib/api';
 import { WorkspaceProvider, type Me } from './lib/workspace';
 import { Shell } from './components/layout/Shell';
@@ -44,7 +45,7 @@ function WorkspaceRoot() {
   const { wsId = '' } = useParams();
   const me = useMe();
   const wsq = useQuery({ queryKey: ['workspace', wsId], queryFn: () => api<Workspace>(wsPath(wsId, '/workspace')), enabled: !!me.data, staleTime: 60000 });
-  useEffect(() => { if (wsq.data) { try { localStorage.setItem('fhq-ws', wsq.data.id); } catch { /* ignore */ } document.title = `${wsq.data.name} · FLOW HQ`; } }, [wsq.data]);
+  useEffect(() => { if (wsq.data) { try { localStorage.setItem('fhq-ws', wsq.data.id); } catch { /* ignore */ } document.title = `${wsq.data.name} · ${BRAND.short}`; } }, [wsq.data]);
   if (me.isLoading || wsq.isLoading) return <Splash />;
   if (me.error) return <Navigate to="/login" replace />;
   if (wsq.error) return (wsq.error as ApiError).status === 404 ? <Navigate to="/" replace /> : <ErrorState error={wsq.error} retry={() => wsq.refetch()} className="h-full" />;

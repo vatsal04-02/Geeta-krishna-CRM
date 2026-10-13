@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, Lock, Mail } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
+import { BRAND } from '@core/brand';
 import { Logo } from '../components/layout/Shell';
 import { Button, Input } from '../components/ui/primitives';
 
@@ -14,7 +15,7 @@ export function Login() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [demo, setDemo] = useState(false);
-  useEffect(() => { api<{ demo: boolean }>('/health').then((h) => setDemo(!!h.demo)).catch(() => null); document.title = 'Sign in · FLOW HQ'; }, []);
+  useEffect(() => { api<{ demo: boolean }>('/health').then((h) => setDemo(!!h.demo)).catch(() => null); document.title = `Sign in · ${BRAND.short}`; }, []);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true); setError('');
     try { await api('/auth/login', { method: 'POST', body: { email, password } }); qc.clear(); nav('/'); }

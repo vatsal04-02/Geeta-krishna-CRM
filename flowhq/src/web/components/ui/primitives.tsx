@@ -1,4 +1,4 @@
-// FLOW HQ primitives. No business words in here: every label is passed in by the caller.
+// UI primitives. No business words in here: every label is passed in by the caller.
 import { forwardRef, useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '../../lib/cn';
@@ -12,7 +12,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLBut
       className={cn(
         'inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50',
         size === 'sm' ? 'h-8 px-3 text-[13px]' : 'h-9 px-3.5 text-sm',
-        variant === 'primary' && 'btn-primary text-white shadow-[0_6px_20px_-8px_rgb(var(--blue)/0.8)] hover:brightness-110 active:brightness-95',
+        variant === 'primary' && 'btn-primary text-white shadow-[0_6px_16px_-8px_rgb(var(--accent)/0.7)] hover:brightness-110 active:brightness-95',
         variant === 'secondary' && 'border border-line bg-surface-2 text-fg hover:border-line-2 hover:bg-elevated',
         variant === 'ghost' && 'text-fg-2 hover:bg-surface-2 hover:text-fg',
         variant === 'subtle' && 'bg-blue/10 text-blue-soft hover:bg-blue/15',
