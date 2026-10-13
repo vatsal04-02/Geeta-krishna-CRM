@@ -272,7 +272,7 @@ export interface SettingField {
   section: SettingsSection;
   label: string;
   help: string | null;
-  type: 'text' | 'textarea' | 'url' | 'phone' | 'time' | 'number' | 'boolean' | 'choice';
+  type: 'text' | 'textarea' | 'url' | 'phone' | 'time' | 'windows' | 'number' | 'boolean' | 'choice';
   options?: Array<{ value: string; label: string }>;
   value: string | null;
   editable: boolean;

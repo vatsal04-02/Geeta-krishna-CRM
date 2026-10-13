@@ -1,4 +1,4 @@
-// W13 prompt (v2.2 = v2.1 + routine questions answered from the knowledge base): puts the current n8n/snippets/ai-receptionist.js
+// W13 prompt (v2.2 = v2.1 + routine questions answered from the knowledge base; then + two opening windows a day via Settings open_hours): puts the current n8n/snippets/ai-receptionist.js
 // (the prompt + the Hindi / Hinglish fact-check guards)
 // into YOUR workflow export. Nothing else changes: no node added or removed, no connection, credential, webhook, Config value,
 // model setting or other section touched. Only the pasted ai-receptionist.js block inside the 4 W13 Code nodes that hold it.
@@ -24,7 +24,7 @@ if (!IN) fail('usage: node apply-w13-prompt.js --in <workflow.json> [--out file]
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex').slice(0, 16);
 
 const NODES = ['W13 – Build Context', 'W13 – Plan', 'W13 – Plan Ready', 'W13 – Record Sends'];
-const OLD_BLOCKS = ['4665e8f18f6731a9', '971e0e6b808d0758'];   // ai-receptionist.js block of the W7-W10 build (before v2.1), of v2.1
+const OLD_BLOCKS = ['4665e8f18f6731a9', '971e0e6b808d0758', '588f8442aa611983'];   // ai-receptionist.js block of the W7-W10 build (before v2.1), of v2.1, of v2.2 (before split opening hours)
 const SWITCH = '// ---- TEMPORARY TEST SWITCH: quiet hours';
 const SNIP = fs.readFileSync(path.join(__dirname, '..', 'snippets', 'ai-receptionist.js'), 'utf8');
 const NEW = SNIP.slice(SNIP.indexOf('const AI_INTENTS'), SNIP.indexOf('if (typeof module'));

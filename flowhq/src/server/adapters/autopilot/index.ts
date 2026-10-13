@@ -13,7 +13,7 @@ import type { BackendAdapter, BackendWorkspaceInfo, Ctx, Supported, Viewer, Work
 import { activityFrom, indexes, parseReport, toBooking, toContact, toConversation, toMessage, priorityOf, universal } from './mappers';
 import { AUTOMATIONS as CATALOGUE } from '../../../core/registry';
 import { AUTOMATIONS, AUTOMATION_BY_RUNLOG, BOOKING_SYSTEM, CHANNELS, COLUMNS, KNOWLEDGE_CATEGORIES, REPLY_WINDOW_SEC, SETTINGS, TABLES, isOn, isTestMode } from './schema';
-import { clinicModules, normalizePhone } from './shared';
+import { clinicModules, normalizePhone, parseOpenHours } from './shared';
 import { RecordsService, type ClinicConfig } from '../../records/service';
 import { RECORD_TABLE_NAMES } from '../../records/schema';
 
@@ -622,6 +622,7 @@ class AutopilotWorkspace implements WorkspaceBackend {
       if (d.type === 'phone') { if (!v) { clean[k] = ''; continue; } const p = normalizePhone(v); if (!p.phone) throw new BackendError(400, 'invalid', `${d.label}: not a valid mobile number`); clean[k] = p.phone; continue; }
       if (d.type === 'url') { if (v && !/^https:\/\/[^\s<>"']+$/i.test(v)) throw new BackendError(400, 'invalid', `${d.label}: must start with https://`); clean[k] = v; continue; }
       if (d.type === 'time') { if (v && !/^([01]?\d|2[0-3]):[0-5]\d$/.test(v)) throw new BackendError(400, 'invalid', `${d.label}: use 24-hour HH:MM`); clean[k] = v; continue; }
+      if (d.type === 'windows') { if (v && parseOpenHours(v) === null) throw new BackendError(400, 'invalid', `${d.label}: use windows like 09:00-13:00, 16:00-20:00 (each one ends after it starts, none overlap, at most 4)`); clean[k] = v; continue; }
       if (d.type === 'number') { if (v && !/^\d{1,4}$/.test(v)) throw new BackendError(400, 'invalid', `${d.label}: a whole number`); clean[k] = v; continue; }
       if (d.type === 'choice') { if (!d.options!.some((o) => o.value === v)) throw new BackendError(400, 'invalid', `${d.label}: choose one of the options`); clean[k] = v; continue; }
       if (k === 'staff_alert_phones' && v) {

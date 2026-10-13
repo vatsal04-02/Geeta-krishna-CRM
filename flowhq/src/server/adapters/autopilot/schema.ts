@@ -66,13 +66,14 @@ export const AUTOMATION_BY_RUNLOG: Record<string, AutomationKey> = Object.fromEn
 );
 
 // Settings keys the workflows read (grist/schema.md > Settings), how FLOW HQ shows them, and who may change them.
-export interface SettingDef { key: string; section: 'workspace' | 'channels' | 'ai' | 'automations' | 'notifications' | 'business_hours'; label: string; help?: string; type: 'text' | 'textarea' | 'url' | 'phone' | 'time' | 'number' | 'boolean' | 'choice'; options?: Array<{ value: string; label: string }>; sensitive?: boolean }
+export interface SettingDef { key: string; section: 'workspace' | 'channels' | 'ai' | 'automations' | 'notifications' | 'business_hours'; label: string; help?: string; type: 'text' | 'textarea' | 'url' | 'phone' | 'time' | 'windows' | 'number' | 'boolean' | 'choice'; options?: Array<{ value: string; label: string }>; sensitive?: boolean }
 export const SETTINGS: SettingDef[] = [
   { key: 'clinic_name', section: 'workspace', label: 'Business name', help: 'Used in every message to {contact.plural|lower}.', type: 'text' },
   { key: 'services', section: 'workspace', label: '{service.plural}', help: 'The list the team and the assistant refer to.', type: 'textarea' },
   { key: 'booking_link', section: 'workspace', label: 'Booking link', help: 'The page {contact.plural|lower} use to book (https). Added to follow-ups and assistant replies.', type: 'url' },
   { key: 'open_time', section: 'business_hours', label: 'Opens', help: '24-hour time, e.g. 09:00. Used to offer free times.', type: 'time' },
   { key: 'close_time', section: 'business_hours', label: 'Closes', help: '24-hour time, e.g. 19:30.', type: 'time' },
+  { key: 'open_hours', section: 'business_hours', label: 'Opening hours (with a break)', help: 'Only if the day has a break, e.g. 09:00-13:00, 16:00-20:00. Times are offered only inside these windows. Leave empty to use Opens / Closes.', type: 'windows' },
   { key: 'working_days', section: 'business_hours', label: 'Working days', help: 'e.g. Mon-Sat, Mon,Tue,Thu or daily.', type: 'text' },
   { key: 'owner_phone', section: 'notifications', label: 'Owner phone', help: 'Receives team alerts and the weekly report copy.', type: 'phone', sensitive: true },
   { key: 'staff_alert_phones', section: 'notifications', label: 'Team alert phones', help: 'Comma-separated mobile numbers.', type: 'text', sensitive: true },

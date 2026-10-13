@@ -126,6 +126,7 @@ function aiProfile(s, registryName) {
     notice_minutes: num(s.booking_notice_minutes, 120, 0, 10080),
     open_time: s.open_time,
     close_time: s.close_time,
+    open_hours: s.open_hours,
     working_days: s.working_days,
     handoff_reply: aiClean(s.handoff_reply, 500) || 'Thank you for your message. A member of our team will reply to you shortly.',
     owner_phone: s.owner_phone,
@@ -155,13 +156,44 @@ function aiCalendar(nowMs, days) {
   return out;
 }
 
-// Free appointment start times from the clinic's hours and the Booked rows in Appointments (which W4 keeps in step with Cal.com).
-// No hours in Settings = no slots at all: the AI must not invent availability.
-function aiFreeSlots(p, appointmentRecords, nowMs, days, h) {
+// Opening windows of a working day, in minutes after midnight. Settings key open_hours (optional) lists them, e.g. "09:00-13:00, 16:00-20:00"
+// (12-hour times also read: "9 AM-1 PM and 4 PM-8 PM"). Without open_hours the single open_time-close_time window is used, exactly as before.
+// aiParseWindows: undefined = not set, null = set but unreadable (overlapping, backwards, more than 4, not clocks), else [[open, close], ...] sorted.
+function aiParseWindows(text, parseClock) {
+  const s = String(text === null || text === undefined ? '' : text).replace(/[–—]/g, '-').trim();
+  if (!s) return undefined;
+  const out = [];
+  for (const part of s.split(/\s*(?:[,;]|\band\b)\s*/i)) {
+    if (!part.trim()) continue;
+    const ends = part.replace(/\s+to\s+/i, '-').split('-');
+    if (ends.length !== 2) return null;
+    const open = parseClock(ends[0]);
+    const close = parseClock(ends[1]);
+    if (open === null || close === null || close <= open) return null;
+    out.push([open, close]);
+  }
+  if (!out.length || out.length > 4) return null;
+  out.sort((x, y) => x[0] - y[0]);
+  for (let i = 1; i < out.length; i++) if (out[i][0] < out[i - 1][1]) return null;
+  return out;
+}
+// The windows to use, or null when the hours are not known (then no time is ever offered or booked).
+function aiHoursWindows(p, h) {
+  const w = aiParseWindows(p.open_hours, h.parseClock);
+  if (w === null) return null;                    // open_hours is set but unreadable: do not guess, and do not fall back to a wider window
+  if (w) return w;
   const open = h.parseClock(p.open_time);
   const close = h.parseClock(p.close_time);
+  return open === null || close === null || close <= open ? null : [[open, close]];
+}
+
+// Free appointment start times from the clinic's hours and the Booked rows in Appointments (which W4 keeps in step with Cal.com).
+// Every slot must start and END inside one opening window (nothing in a lunch break, nothing running past closing, nothing on a non-working day).
+// No hours in Settings = no slots at all: the AI must not invent availability.
+function aiFreeSlots(p, appointmentRecords, nowMs, days, h) {
+  const windows = aiHoursWindows(p, h);
   const working = h.parseDays(p.working_days);
-  if (open === null || close === null || close <= open || !working) return { known: false, days: [], slot_minutes: p.slot_minutes };
+  if (!windows || !working) return { known: false, days: [], slot_minutes: p.slot_minutes };
   const busy = [];
   for (const r of appointmentRecords || []) {
     const f = (r && r.fields) || {};
@@ -175,15 +207,17 @@ function aiFreeSlots(p, appointmentRecords, nowMs, days, h) {
   for (const day of aiCalendar(nowMs, days)) {
     if (!working.includes(new Date(Date.parse(`${day.date}T00:00:00Z`)).getUTCDay())) continue;
     const times = [];
-    for (let m = open; m + p.slot_minutes <= close; m += p.slot_minutes) {
-      const s = aiIstMs(day.date, m);
-      const e = s + p.slot_minutes * 60000;
-      if (s < earliest) continue;
-      if (busy.filter(([bs, be]) => bs < e && be > s).length < p.capacity) times.push(m);
+    for (const [open, close] of windows) {
+      for (let m = open; m + p.slot_minutes <= close; m += p.slot_minutes) {
+        const s = aiIstMs(day.date, m);
+        const e = s + p.slot_minutes * 60000;
+        if (s < earliest) continue;
+        if (busy.filter(([bs, be]) => bs < e && be > s).length < p.capacity) times.push(m);
+      }
     }
     if (times.length) out.push({ date: day.date, label: day.label, times });
   }
-  return { known: true, days: out, slot_minutes: p.slot_minutes, open, close };
+  return { known: true, days: out, slot_minutes: p.slot_minutes, open: windows[0][0], close: windows[windows.length - 1][1], windows };
 }
 
 // This patient's upcoming Booked appointments, with short refs (A1, A2...) the AI can point at.
@@ -560,7 +594,7 @@ function aiAllowedFacts(x) {
   const kbText = x.kb.map((k) => `${k.title} ${k.content}`).join('\n');
   const minutes = new Set();
   for (const t of aiTimesIn(kbText)) for (const v of t) minutes.add(v);
-  if (x.slots.known) { minutes.add(x.slots.open); minutes.add(x.slots.close); }
+  if (x.slots.known) { minutes.add(x.slots.open); minutes.add(x.slots.close); for (const [o, c] of x.slots.windows || []) { minutes.add(o); minutes.add(c); } }
   for (const d of x.slots.days) for (const m of d.times) minutes.add(m);
   for (const a of x.appointments) minutes.add(a.minutes);
   return {
@@ -950,7 +984,7 @@ if (typeof module !== 'undefined') {
   module.exports = {
     AI_INTENTS, AI_ACTIONS, AI_HUMAN_INTENTS, AI_INTENT_LABELS, AI_STAFF_WINDOW_SEC, AI_DECISION_SCHEMA, AI_RULES, AI_WINDOWS, AI_STOP_WORDS, AI_WORKFLOW,
     AI_PRIORITIES, AI_RISK_FLAGS, AI_INFO_INTENTS, AI_INFO_ACTIONS, AI_NO_REPLY_INTENTS, AI_EMERGENCY, aiNum, aiStaffNote, aiEmergencyIn, aiTriage, aiTraceText,
-    aiClean, aiLine, aiIst, aiIstMs, aiDayLabel, aiHHMM, ai12h, aiSettings, aiProfile, aiKnowledge, aiCalendar, aiFreeSlots,
+    aiClean, aiLine, aiIst, aiIstMs, aiDayLabel, aiHHMM, ai12h, aiSettings, aiProfile, aiKnowledge, aiCalendar, aiParseWindows, aiHoursWindows, aiFreeSlots,
     aiLeadAppointments, aiHistory, aiContext, aiGates, aiClinicFacts, aiFacts, aiBuildRequest, aiParseResponse, aiValidateDecision,
     aiTimesIn, aiAmountsIn, aiAllowedFacts, aiCheckReply, aiCalOrigin, aiBookingLink, aiFillLinks, aiEmptyPlan, aiToHandoff,
     aiGatePlan, aiPlan, aiSendItems, aiFinalWrites,

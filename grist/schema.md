@@ -105,6 +105,8 @@ outcome_checkin, review_requests, weekly_report_whatsapp (W7, W8, W9; optional, 
 
 How the workflows read the values:
 - `open_time`, `close_time`: 24-hour `09:00`, `19:30` (`9:00 AM` also works). Missing or unreadable = 08:00-21:00.
+- `open_hours` (optional, W13): use it when the day has a break. Up to 4 windows, e.g. `09:00-13:00, 16:00-20:00` (also `9 AM-1 PM and 4 PM-8 PM`). W13 offers, books and reschedules **only** inside these windows, and an appointment must start **and end** inside one window (no slot runs into the break or past closing). Without it, `open_time` / `close_time` are used exactly as before. If it is set but cannot be read (overlapping, backwards, not clock times), W13 offers **no** time at all rather than guess. `working_days` still applies (`Mon-Sat` = Sunday closed).
+  Geeta Krishna: `open_hours` = `09:00-13:00, 16:00-20:00`, `working_days` = `Mon-Sat`. Keep `open_time` = `09:00` and `close_time` = `20:00` too: W3 (staff alerts) still reads only those two.
 - `working_days`: `Mon-Sat`, `Mon,Tue,Thu` or `daily`. Missing or unreadable = every day.
 - `owner_phone`, `TEST_PHONE`: one Indian mobile number in any common format (`98765 43210`, `+91 98765 43210`); the workflows turn it into `+91XXXXXXXXXX`.
 - `TEST_MODE`: `true` or `false`. A missing row, or anything else, counts as ON (patient messages go to `TEST_PHONE`).

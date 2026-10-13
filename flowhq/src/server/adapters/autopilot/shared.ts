@@ -38,6 +38,8 @@ export const clinicModules = req('./clinic-modules.js') as {
   cmRenderReport(m: WeeklyMetrics, ai: { summary: string; observations: string[]; recommendations: string[]; dropped: number; error: string }, clinicName: string, win: WeekWindow, reviewLinkSet: boolean): { text: string; headline: string; top_action: string };
   cmHttps(v: unknown): string;
 };
+// Opening windows ("09:00-13:00, 16:00-20:00"): the receptionist's own parser, so Settings accepts exactly what W13 will read. undefined = empty, null = unreadable.
+export const parseOpenHours = (text: string) => (req('./ai-receptionist.js') as { aiParseWindows(t: string, parseClock: (x: string) => number | null): number[][] | null | undefined }).aiParseWindows(text, (req('./clinic-hours.js') as { parseClock(x: string): number | null }).parseClock);
 export const normalizePhone = (req('./normalize-phone.js') as { normalizeIndianPhone(raw: unknown): { phone: string | null; valid: boolean } }).normalizeIndianPhone;
 export const sendGuard = req('./send-guard.js') as { decideSend(i: Record<string, unknown>): { send: boolean; to: string | null; reason: string; test_mode: boolean } };
 // W10's own decision functions (used by demo mode to behave like the real staff-reply automation)

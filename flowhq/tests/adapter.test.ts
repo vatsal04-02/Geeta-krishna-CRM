@@ -187,6 +187,14 @@ describe('settings', () => {
     await rejects(b.updateSettings({ owner_phone: '12345' }, admin), 400);
     await rejects(b.updateSettings({ review_link: 'http://insecure.example' }, admin), 400);
     await rejects(b.updateSettings({ GRIST_API_KEY: 'x' }, admin), 400);
+    // two opening windows a day: what W13 can read is accepted, what it could not read is refused (and nothing is written)
+    await rejects(b.updateSettings({ open_hours: '09:00-13:00, 16:00-20:00' }, staff), 403);
+    for (const bad of ['09:00-13:00, 12:00-20:00', '13:00-09:00', 'lunch', '09:00-13:00-16:00']) await rejects(b.updateSettings({ open_hours: bad }, admin), 400);
+    expect(rows.Settings.some((s) => s.fields.Key === 'open_hours')).toBe(false);
+    await b.updateSettings({ open_hours: '9 AM - 1 PM and 4 PM - 8 PM' }, admin);
+    expect(rows.Settings.find((s) => s.fields.Key === 'open_hours')!.fields.Value).toBe('9 AM - 1 PM and 4 PM - 8 PM');
+    await b.updateSettings({ open_hours: '' }, admin);                                  // empty = back to Opens / Closes
+    expect(rows.Settings.find((s) => s.fields.Key === 'open_hours')!.fields.Value).toBe('');
     await b.updateSettings({ TEST_MODE: 'on', open_time: '08:30', owner_phone: '90000 00911' }, admin);
     const v = (k: string) => rows.Settings.find((s) => s.fields.Key === k)!.fields.Value;
     expect(v('TEST_MODE')).toBe('true');

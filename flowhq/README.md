@@ -342,7 +342,7 @@ mistaken for a registered patient. No n8n workflow reads or writes these tables,
 **Known limits**
 - IDs and the "check, then write" steps are serialised **inside one FLOW HQ process**. Run a single replica (the shipped Docker setup does).
 - The register loads the clinic's patient and finance rows and filters them on the server: fine for a clinic-sized register (thousands of patients).
-- Clinic hours in `Settings` are one window (`open_time` / `close_time`); a 9–1 and 4–8 split cannot be expressed there. This does not affect these pages.
+- **Split opening hours** (9–1 and 4–8) are supported by the AI receptionist through the optional Settings key `open_hours` (see `grist/schema.md`); FlowHQ's Settings page has an "Opening hours (with a break)" field that accepts exactly what W13 can read. Two things stay outside this app: **Cal.com** decides which times a patient can pick on the booking link (set its availability to the same two windows, Sunday off), and **W3** (staff alerts for new leads) still reads only `open_time` / `close_time`, so keep those at the outer 09:00 / 20:00.
 - Signatures are not collected (the printed documents have a signature line for pen).
 - Not claimed: compliance with any privacy law. Have the handling of patient data reviewed before real patients are entered.
 
