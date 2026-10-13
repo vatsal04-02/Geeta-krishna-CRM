@@ -45,6 +45,11 @@ describe('patients', () => {
     expect([b.patientId, b.serialNo]).toEqual(['GK-P-000002', 2]);
     expect(a.registeredOn).toBe('2026-10-07'); expect(a.status).toBe('Active');
   });
+  it('a blank registration date means today (the form sends null)', async () => {
+    const { svc } = setup();
+    expect((await svc.createPatient({ name: 'Blank Date Test', registeredOn: null, followUpOn: null }, STAFF)).registeredOn).toBe('2026-10-07');
+    expect((await svc.createPatient({ name: 'Set Date Test', registeredOn: '2026-09-01' }, STAFF)).registeredOn).toBe('2026-09-01');
+  });
   it('concurrent registrations never share an id', async () => {
     const { svc } = setup();
     const made = await Promise.all(Array.from({ length: 6 }, (_, i) => patient(svc, `Person ${String.fromCharCode(65 + i)}`, `98765432${10 + i}`)));

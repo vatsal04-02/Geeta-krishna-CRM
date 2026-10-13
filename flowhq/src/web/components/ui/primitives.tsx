@@ -62,7 +62,7 @@ export function StatusDot({ tone = 'blue', pulse, className }: { tone?: Tone; pu
   return <span className={cn('inline-block h-2 w-2 shrink-0 rounded-full', c, pulse && 'animate-pulse-dot', tone === 'blue' && 'shadow-[0_0_8px_rgb(var(--blue-bright)/0.8)]', className)} />;
 }
 
-const field = 'h-9 w-full rounded-lg border border-line bg-bg-2 px-3 text-sm text-fg placeholder:text-muted transition-colors focus:border-blue/60 focus:outline-none focus:ring-2 focus:ring-blue/20 disabled:opacity-60';
+const field = 'h-9 w-full rounded-lg border border-line-2 bg-field px-3 text-sm text-fg placeholder:text-muted transition-colors focus:border-blue/60 focus:outline-none focus:ring-2 focus:ring-blue/20 disabled:opacity-60';
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { icon?: ReactNode }>(({ className, icon, ...p }, ref) =>
   icon ? (
     <div className="relative">

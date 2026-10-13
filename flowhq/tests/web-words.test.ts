@@ -9,8 +9,11 @@ const code = (p: string) => readFileSync(p, 'utf8').replace(/\/\*[\s\S]*?\*\//g,
 
 describe('src/web stays universal', () => {
   const all = files(WEB);
-  it('has files to check', () => expect(all.length).toBeGreaterThan(20));
-  it.each(all.map((p) => [path.relative(WEB, p), p]))('%s: no industry words or backend table names', (_n, p) => {
+  // src/web/clinical/ holds the clinic-only screens (patients, prescriptions, invoices): they are the one place industry words are allowed.
+  // Everything else stays universal, and the network rule below still applies to every file, clinical ones included.
+  const universal = all.filter((p) => !path.relative(WEB, p).startsWith('clinical' + path.sep));
+  it('has files to check', () => expect(universal.length).toBeGreaterThan(20));
+  it.each(universal.map((p) => [path.relative(WEB, p), p]))('%s: no industry words or backend table names', (_n, p) => {
     const banned = /\b(patients?|physio\w*|doctors?|clinics?|appointments?|treatments?|leads?|medical|review request)\b|cal\.com|grist|n8n|openrouter/i;
     const workflowNumber = /\bW(1[0-3]|[1-9])\b/;   // workflow numbers (W1-W13) are backend references, never UI words
     const hit = code(p).match(banned) || code(p).match(workflowNumber);

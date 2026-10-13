@@ -118,6 +118,7 @@ export class RecordsService {
   createPatient(input: Partial<Patient>, a: Actor, confirmDuplicate = false): Promise<PatientRow> {
     return this.lock.run(async () => {
       const { fields } = this.cleanPatient({ ...input, name: input.name ?? '' });
+      if (!fields.Registered_On) delete fields.Registered_On;   // a blank date means "today", not "no date"
       const existing = await this.rows(RT.patients);
       const dup = this.dupes(existing.map((r) => this.toPatient(r)), s(fields.Name), s(fields.Phone));
       if (dup.length && !confirmDuplicate) throw bad('possible_duplicate', 'A patient with the same phone number or name already exists', 409, { matches: dup });

@@ -115,16 +115,16 @@ export function Shell({ children }: { children: ReactNode }) {
   }, [nav, shortcuts]);
   const signOut = async () => { await api('/auth/logout', { method: 'POST' }).catch(() => null); qc.clear(); nav('/login'); };
   return (
-    <div className="flex h-full">
-      <aside className="hidden w-[248px] shrink-0 lg:block"><Sidebar /></aside>
+    <div className="flex h-full print:block print:h-auto">
+      <aside className="hidden w-[248px] shrink-0 lg:block print:hidden"><Sidebar /></aside>
       {mobile && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobile(false)} />
           <div className="absolute left-0 top-0 h-full w-[264px] animate-fade-up"><Sidebar onNavigate={() => setMobile(false)} /></div>
         </div>
       )}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-line bg-bg/80 px-4 backdrop-blur-xl md:px-6">
+      <div className="flex min-w-0 flex-1 flex-col print:block">
+        <header className="sticky top-0 z-20 flex h-14 print:hidden shrink-0 items-center gap-3 border-b border-line bg-bg/80 px-4 backdrop-blur-xl md:px-6">
           <button className="rounded-lg p-1.5 text-fg-2 hover:bg-surface lg:hidden" onClick={() => setMobile(true)} aria-label="Open menu">{mobile ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}</button>
           <div className="lg:hidden"><Logo compact /></div>
           <button onClick={() => setPalette(true)} aria-label="Search and commands" className="group flex h-9 min-w-0 max-w-md flex-1 items-center gap-2.5 rounded-lg border border-line bg-surface/70 px-3 text-left text-[13px] text-muted transition-colors hover:border-line-2 hover:text-fg-2">
@@ -144,7 +144,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <button onClick={signOut} className="rounded-lg p-2 text-fg-2 transition-colors hover:bg-surface hover:text-fg" aria-label="Sign out"><LogOut className="h-[18px] w-[18px]" /></button>
           </div>
         </header>
-        <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto print:overflow-visible">{children}</main>
       </div>
       <CommandPalette open={palette} onClose={() => setPalette(false)} />
     </div>

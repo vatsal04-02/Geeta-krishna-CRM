@@ -1,6 +1,6 @@
 // Routes are built from the workspace's enabled modules: a disabled module has no page at all.
 import { lazy, Suspense, useEffect, type ReactElement } from 'react';
-import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ModuleKey, Workspace } from '@core/domain';
 import { BRAND } from '@core/brand';
@@ -9,6 +9,7 @@ import { WorkspaceProvider, type Me } from './lib/workspace';
 import { Shell } from './components/layout/Shell';
 import { ErrorState, Skeleton } from './components/ui/feedback';
 import { Login } from './pages/Login';
+import { CLINICAL_PAGES, PRINT_PAGES } from './clinical/routes';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Inbox = lazy(() => import('./pages/Inbox'));
@@ -33,6 +34,7 @@ const PAGES: Array<{ module: ModuleKey; path: string; el: ReactElement }> = [
   { module: 'activity', path: 'activity', el: <ActivityPage /> },
   { module: 'ai', path: 'ai', el: <Ai /> },
   { module: 'settings', path: 'settings/:section?', el: <Settings /> },
+  ...CLINICAL_PAGES,
 ];
 
 function useMe() { return useQuery({ queryKey: ['me'], queryFn: () => api<Me>('/me'), retry: false, staleTime: 60000 }); }
@@ -43,6 +45,7 @@ function Splash() {
 
 function WorkspaceRoot() {
   const { wsId = '' } = useParams();
+  const bare = /\/print\//.test(useLocation().pathname);   // print views are shown without the dashboard around them
   const me = useMe();
   const wsq = useQuery({ queryKey: ['workspace', wsId], queryFn: () => api<Workspace>(wsPath(wsId, '/workspace')), enabled: !!me.data, staleTime: 60000 });
   useEffect(() => { if (wsq.data) { try { localStorage.setItem('fhq-ws', wsq.data.id); } catch { /* ignore */ } document.title = `${wsq.data.name} · ${BRAND.short}`; } }, [wsq.data]);
@@ -53,14 +56,18 @@ function WorkspaceRoot() {
   const ws = wsq.data;
   return (
     <WorkspaceProvider me={me.data} ws={ws}>
-      <Shell>
-        <Suspense fallback={<div className="p-8"><Skeleton className="h-6 w-48" /></div>}>
-          <Routes>
-            {PAGES.filter((p) => ws.modules.includes(p.module)).map((p) => <Route key={p.module} path={p.path} element={p.el} />)}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </Shell>
+      {(() => {
+        const routes = (
+          <Suspense fallback={<div className="p-8"><Skeleton className="h-6 w-48" /></div>}>
+            <Routes>
+              {PAGES.filter((p) => ws.modules.includes(p.module)).map((p) => <Route key={p.module} path={p.path} element={p.el} />)}
+              {PRINT_PAGES.filter((p) => ws.modules.includes(p.module)).map((p) => <Route key={p.path} path={p.path} element={p.el} />)}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        );
+        return bare ? routes : <Shell>{routes}</Shell>;
+      })()}
     </WorkspaceProvider>
   );
 }

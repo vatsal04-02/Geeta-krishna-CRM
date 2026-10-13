@@ -6,7 +6,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: v('bg'), 'bg-2': v('bg-2'), surface: v('surface'), 'surface-2': v('surface-2'), elevated: v('elevated'),
+        bg: v('bg'), 'bg-2': v('bg-2'), surface: v('surface'), field: v('field'), 'surface-2': v('surface-2'), elevated: v('elevated'),
         line: v('line'), 'line-2': v('line-2'),
         fg: v('fg'), 'fg-2': v('fg-2'), muted: v('muted'),
         blue: { DEFAULT: v('blue'), bright: v('blue-bright'), soft: v('blue-soft') },
