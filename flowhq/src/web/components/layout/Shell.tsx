@@ -14,13 +14,10 @@ import { cn } from '../../lib/cn';
 import { Avatar, Badge, Kbd } from '../ui/primitives';
 import { CommandPalette } from './CommandPalette';
 
-export function Logo({ compact }: { compact?: boolean }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-blue-bright font-display text-[15px] font-bold tracking-wide text-[#F8F5EC]">{BRAND.monogram}</span>
-      {!compact && <span className="leading-tight"><span className="block font-display text-[15px] font-semibold tracking-tight">{BRAND.short}</span><span className="block text-[9.5px] font-semibold tracking-[0.22em] text-muted">{BRAND.sub}</span></span>}
-    </div>
-  );
+export function Logo({ compact, large }: { compact?: boolean; large?: boolean }) {
+  const { theme } = useTheme();
+  // The clinic's own artwork: cream lettering for the dark theme, deep-green lettering for the light theme.
+  return <img src={`/brand/gkp-logo-${theme}.png`} alt={BRAND.name} width={1200} height={694} className={cn('w-auto select-none', large ? 'h-28' : compact ? 'h-9' : 'h-[72px]')} draggable={false} />;
 }
 
 export function pagePath(wsId: string, m: ModuleKey) { const p = MODULES[m].page; return p === '/' ? `/w/${wsId}` : `/w/${wsId}${p}`; }

@@ -28,7 +28,7 @@ export function Login() {
       <div className="pointer-events-none absolute left-1/2 top-1/3 h-[420px] w-[620px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue/20 blur-[120px]" />
       <div className="relative w-full max-w-[380px] animate-fade-up">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <Logo />
+          <Logo large />
           <p className="text-sm text-fg-2">The automation OS for your business</p>
         </div>
         <form onSubmit={submit} className="card space-y-4 p-6 shadow-pop">

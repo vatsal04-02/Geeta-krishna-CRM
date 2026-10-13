@@ -53,6 +53,7 @@ export function buildServer(env: NodeJS.ProcessEnv = process.env) {
   root.route('/', api);
   if (existsSync(cfg.staticDir)) {
     root.use('/assets/*', serveStatic({ root: path.relative(process.cwd(), cfg.staticDir) }));
+    root.use('/brand/*', serveStatic({ root: path.relative(process.cwd(), cfg.staticDir) }));
     root.get('/favicon.svg', serveStatic({ path: path.relative(process.cwd(), path.join(cfg.staticDir, 'favicon.svg')) }));
     const index = readFileSync(path.join(cfg.staticDir, 'index.html'), 'utf8');
     root.get('*', (c) => c.html(index));

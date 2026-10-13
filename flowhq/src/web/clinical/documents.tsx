@@ -3,14 +3,13 @@
 import type { ReactNode } from 'react';
 import type { ClinicProfile, Invoice, Patient, Prescription } from '@core/clinical';
 import { amountInWords } from '@core/money';
-import { BRAND } from '@core/brand';
 import { fdate, rs } from './common';
 
 function Letterhead({ clinic, title }: { clinic: ClinicProfile; title?: string }) {
   return (
     <header className="keep">
       <div className="flex items-center gap-4">
-        <div aria-hidden="true" className="flex h-[17mm] w-[17mm] shrink-0 items-center justify-center rounded-[3mm] border-2 border-black font-display text-[18pt] font-bold">{BRAND.monogram}</div>
+        <img src="/brand/gkp-logo-light.png" alt="" className="h-[20mm] w-auto shrink-0" />
         <div className="min-w-0 flex-1 text-center">
           <h1 className="font-display text-[18pt] font-bold uppercase leading-none tracking-wide">{clinic.name}</h1>
           <div className="mt-1 text-[9pt] font-semibold uppercase tracking-[0.2em]">Consultant Physiotherapist</div>
