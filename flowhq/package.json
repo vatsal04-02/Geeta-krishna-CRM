@@ -19,6 +19,7 @@
     "test": "vitest run",
     "test:e2e": "node tests/e2e/run-e2e.mjs",
     "hash-password": "tsx src/server/tools/hash-password.ts",
+    "provision-records": "tsx src/server/tools/provision-records.ts",
     "start:env": "node --env-file=.env dist/server/index.js"
   },
   "dependencies": {

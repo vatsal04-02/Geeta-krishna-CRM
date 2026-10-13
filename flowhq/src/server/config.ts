@@ -16,6 +16,7 @@ export interface Config {
   usersFile: string;
   usersJson: string;
   workspacesFile: string;
+  clinicFile: string;
   staticDir: string;
 }
 
@@ -40,6 +41,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     usersFile: env.FLOWHQ_USERS_FILE || path.resolve('config/users.json'),
     usersJson: env.FLOWHQ_USERS || '',
     workspacesFile: env.FLOWHQ_WORKSPACES_FILE || path.resolve('config/workspaces.json'),
+    clinicFile: env.FLOWHQ_CLINIC_FILE || path.resolve('config/clinic.json'),
     staticDir: env.FLOWHQ_STATIC_DIR || path.resolve('dist/web'),
   };
   if (!cfg.demo) {

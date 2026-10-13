@@ -10,6 +10,7 @@ import { BackendError } from './grist';
 import type { BackendAdapter, Ctx, WorkspaceBackend } from './adapters/types';
 import { COOKIE, canAccess, loginAllowed, loginFailed, loginSucceeded, readSession, signSession, verifyPassword, viewerOf, type UserRecord } from './auth';
 import type { ProfileStore } from './profiles';
+import { recordsRoutes } from './records/routes';
 
 export interface AppDeps {
   adapter: BackendAdapter;
@@ -30,7 +31,7 @@ export function createApp(d: AppDeps) {
   const err = (c: Context, status: number, code: string, message: string) => c.json({ error: { code, message } }, status as 400);
 
   app.onError((e, c) => {
-    if (e instanceof BackendError) return err(c, e.status, e.code, e.message);
+    if (e instanceof BackendError) return c.json({ error: { code: e.code, message: e.message }, ...(e.extra || {}) }, e.status as 400);
     if (e instanceof z.ZodError) return err(c, 400, 'invalid', e.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '));
     console.error('FLOW HQ API error:', (e as Error).message);
     return err(c, 500, 'internal', 'Something went wrong on the server');
@@ -200,6 +201,8 @@ export function createApp(d: AppDeps) {
     s.team.users = d.users.filter((u) => canAccess(u, B(c).info.id)).map((u) => ({ name: u.name, email: u.email, role: u.role }));
     return c.json(s);
   });
+
+  app.route('/api/w/:ws', recordsRoutes());      // patients, prescriptions, invoices, payments, visits (only live when the clinic doc has the records tables)
 
   app.all('/api/*', (c) => err(c, 404, 'not_found', 'No such API route'));
   return app;

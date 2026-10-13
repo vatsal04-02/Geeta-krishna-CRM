@@ -5,6 +5,7 @@ import type {
   KnowledgeItem, Message, MetricKey, ModuleKey, Report, SettingsView, Task, Activity, ActivityKind,
 } from '../../core/domain';
 
+import type { RecordsService } from '../records/service';
 export type Role = 'admin' | 'staff';
 export interface Viewer { email: string; name: string; role: Role }
 export interface Ctx { viewer: Viewer; now: number }
@@ -50,6 +51,8 @@ export interface WorkspaceBackend {
   ai(ctx: Ctx): Promise<AiOverview>;
   knowledge(ctx: Ctx): Promise<KnowledgeItem[]>;
   saveKnowledge(item: Partial<KnowledgeItem> & { id?: string }, ctx: Ctx): Promise<KnowledgeItem>;
+  // Clinic records (patients, prescriptions, invoices, visits): present only when the backend has the Clinic Records tables
+  records?(): RecordsService | null;
   settings(ctx: Ctx): Promise<SettingsView>;
   updateSettings(values: Record<string, string>, ctx: Ctx): Promise<SettingsView>;
 }

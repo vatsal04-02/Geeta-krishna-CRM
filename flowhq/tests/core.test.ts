@@ -13,7 +13,7 @@ const ALL_SUPPORTED = {
 const leftover = /\{[a-zA-Z]+\.[a-zA-Z_]+(\|[a-z]+)?\}/;
 
 describe('terminology', () => {
-  const t = INDUSTRIES.physiotherapy.terminology;
+  const t = INDUSTRIES.clinic.terminology;
   it('resolves tokens and modifiers', () => {
     expect(fmt('New {contact.plural}', t)).toBe('New Patients');
     expect(fmt('{booking.plural|lower}', t)).toBe('appointments');

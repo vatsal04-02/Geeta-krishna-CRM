@@ -14,7 +14,9 @@ export type ModuleKey =
   | 'dashboard' | 'inbox' | 'contacts' | 'activity' | 'settings' | 'automations'
   // optional: shown only if the industry profile enables them AND the backend supports them
   | 'bookings' | 'ai' | 'lead_qualification' | 'reviews' | 'follow_ups' | 'reminders' | 'reports' | 'tasks'
-  | 'payments' | 'campaigns' | 'forms' | 'staff' | 'analytics';
+  | 'payments' | 'campaigns' | 'forms' | 'staff' | 'analytics'
+  // clinical records (patient register, prescriptions, invoices, attendance): shown only when the clinic doc has the Clinic Records tables
+  | 'patients' | 'prescriptions' | 'invoices' | 'visits';
 
 export type AutomationKey =
   | 'contact_capture' | 'inbound_messaging' | 'speed_to_lead' | 'booking_sync' | 'booking_reminders' | 'follow_ups'

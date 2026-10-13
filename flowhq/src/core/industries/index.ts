@@ -62,14 +62,14 @@ export const INDUSTRIES: Record<IndustryKey, IndustryProfile> = {
   }),
   physiotherapy: profile('physiotherapy', 'Physiotherapy', 'Physiotherapy and rehab centres', {
     workspace: { singular: 'Clinic', plural: 'Clinics' },
-    contact: { singular: 'Patient', plural: 'Patients' },
+    contact: { singular: 'Enquiry', plural: 'Enquiries' },   // marketing leads: registered patients live in the Patients register
     booking: { singular: 'Appointment', plural: 'Appointments' },
     service: { singular: 'Treatment', plural: 'Treatments' },
     staff: { singular: 'Physiotherapist', plural: 'Physiotherapists' },
     ai: { name: 'AI Receptionist', short: 'AI' },
     outcome: { better: 'Feeling better', same: 'No change', worse: 'Feeling worse' },
     automations: { contact_capture: { name: 'Website Enquiries' } },
-  }),
+  }, [...BOOKED_BUSINESS, 'patients', 'prescriptions', 'invoices', 'visits']),
   salon: profile('salon', 'Salon', 'Hair, beauty and nail salons', {
     workspace: { singular: 'Salon', plural: 'Salons' },
     contact: { singular: 'Client', plural: 'Clients' },

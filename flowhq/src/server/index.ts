@@ -12,16 +12,20 @@ import { createAutopilotAdapter } from './adapters/autopilot';
 import { memoryGrist } from './grist';
 import { demoDocs } from './demo/fixtures';
 import { startStaffReplySimulator } from './demo/simulator';
+import { loadClinicConfig } from './clinic';
+import { RECORD_TABLE_NAMES } from './records/schema';
 
 export function buildServer(env: NodeJS.ProcessEnv = process.env) {
   const cfg = loadConfig(env);
+  const clinic = loadClinicConfig(cfg.clinicFile);
   let adapter;
   let profiles: ProfileStore;
   let users: UserRecord[];
   if (cfg.demo) {
     const { docs, profiles: seed } = demoDocs(Date.now());
+    for (const d of Object.values(docs)) for (const t of RECORD_TABLE_NAMES) d[t] = [];   // demo: empty Clinic Records tables (no seeded patients); anything entered lives in memory only
     const mem = memoryGrist(docs);
-    adapter = createAutopilotAdapter({ gristBaseUrl: 'http://memory', gristApiKey: '', registryDocId: 'REGISTRY', timezone: cfg.timezone, locale: cfg.locale, currency: cfg.currency, fetchImpl: mem, cacheMs: 1000 });
+    adapter = createAutopilotAdapter({ gristBaseUrl: 'http://memory', gristApiKey: '', registryDocId: 'REGISTRY', timezone: cfg.timezone, locale: cfg.locale, currency: cfg.currency, fetchImpl: mem, clinic, cacheMs: 1000 });
     profiles = new ProfileStore(null, cfg.defaultIndustry, seed);
     users = [
       { email: 'admin@flowhq.demo', name: 'Alex (admin)', role: 'admin', workspaces: ['*'], passwordHash: hashPassword('demo1234') },
@@ -29,7 +33,7 @@ export function buildServer(env: NodeJS.ProcessEnv = process.env) {
     ];
     startStaffReplySimulator(docs);
   } else {
-    adapter = createAutopilotAdapter({ gristBaseUrl: cfg.grist.baseUrl, gristApiKey: cfg.grist.apiKey, registryDocId: cfg.grist.registryDocId, leadsTable: cfg.grist.leadsTable, timezone: cfg.timezone, locale: cfg.locale, currency: cfg.currency });
+    adapter = createAutopilotAdapter({ gristBaseUrl: cfg.grist.baseUrl, gristApiKey: cfg.grist.apiKey, registryDocId: cfg.grist.registryDocId, leadsTable: cfg.grist.leadsTable, timezone: cfg.timezone, locale: cfg.locale, currency: cfg.currency, clinic });
     profiles = new ProfileStore(cfg.workspacesFile, cfg.defaultIndustry);
     users = loadUsers(cfg.usersFile, cfg.usersJson);
     if (!users.length) throw new Error('No FLOW HQ users: create config/users.json (see README) or set FLOWHQ_USERS');

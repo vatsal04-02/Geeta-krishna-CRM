@@ -14,6 +14,8 @@ import { activityFrom, indexes, parseReport, toBooking, toContact, toConversatio
 import { AUTOMATIONS as CATALOGUE } from '../../../core/registry';
 import { AUTOMATIONS, AUTOMATION_BY_RUNLOG, BOOKING_SYSTEM, CHANNELS, COLUMNS, KNOWLEDGE_CATEGORIES, REPLY_WINDOW_SEC, SETTINGS, TABLES, isOn, isTestMode } from './schema';
 import { clinicModules, normalizePhone } from './shared';
+import { RecordsService, type ClinicConfig } from '../../records/service';
+import { RECORD_TABLE_NAMES } from '../../records/schema';
 
 export interface AutopilotConfig {
   gristBaseUrl: string;
@@ -26,6 +28,7 @@ export interface AutopilotConfig {
   fetchImpl?: FetchLike;
   cacheMs?: number;
   readLimit?: number;
+  clinic?: (slug: string, workspaceName: string) => ClinicConfig;   // letterhead + invoice rules (config/clinic.json)
 }
 const DAY = 86400000;
 const SUPPORTED: Supported = {
@@ -33,6 +36,7 @@ const SUPPORTED: Supported = {
   automations: Object.keys(AUTOMATIONS) as AutomationKey[],
   metrics: ['new_contacts', 'active_conversations', 'bookings', 'completed', 'pending_actions', 'ai_handled', 'human_handoffs', 'conversion', 'revenue', 'follow_ups', 'reviews', 'reminders', 'no_shows'],
 };
+const RECORD_MODULES: Supported['modules'] = ['patients', 'prescriptions', 'invoices', 'visits'];
 const PROCESSED = ['replied', 'drafted', 'handed_off', 'no_reply', 'failed'];
 const HANDLED = ['replied', 'no_reply'];
 const PRIORITY_ORDER: Record<Priority, number> = { urgent: 0, high: 1, normal: 2 };
@@ -64,6 +68,7 @@ export function createAutopilotAdapter(cfg: AutopilotConfig): BackendAdapter {
       let inst = instances.get(id);
       if (!inst || inst.docId !== r.docId) { inst = new AutopilotWorkspace(grist, cfg, r, info(r)); instances.set(id, inst); }
       inst.info = info(r);
+      await inst.probeRecords();
       return inst;
     },
     async health() {
@@ -73,13 +78,32 @@ export function createAutopilotAdapter(cfg: AutopilotConfig): BackendAdapter {
 }
 
 class AutopilotWorkspace implements WorkspaceBackend {
-  supported = SUPPORTED;
+  supported: Supported = SUPPORTED;
+  private recordsSvc: RecordsService | null = null;
+  private probedAt = 0;
   docId: string;
   private cache = new Map<string, { at: number; rows: GristRecord[] }>();
   private leadsTable: string;
   constructor(private grist: GristClient, private cfg: AutopilotConfig, private reg: RegistryRow, public info: BackendWorkspaceInfo) {
     this.docId = reg.docId;
     this.leadsTable = cfg.leadsTable || TABLES.leads;
+  }
+
+  records() { return this.recordsSvc; }
+  // The clinical modules appear only when ALL Clinic Records tables exist in this clinic's doc (npm run provision-records creates them).
+  async probeRecords(): Promise<void> {
+    if (Date.now() - this.probedAt < 60000) return;
+    this.probedAt = Date.now();
+    const missing: string[] = []; let unreachable = false;
+    await Promise.all(RECORD_TABLE_NAMES.map(async (t) => { try { await this.grist.records(this.docId, t, { limit: 1 }); } catch (e) { if (e instanceof BackendError && e.status === 404) missing.push(t); else unreachable = true; } }));
+    if (unreachable) { this.probedAt = Date.now() - 50000; return; }   // keep the last known state, look again in 10 s
+    if (missing.length === 0) {
+      this.supported = { ...SUPPORTED, modules: [...SUPPORTED.modules, ...RECORD_MODULES] };
+      this.recordsSvc ||= new RecordsService(this.grist, this.docId, { tz: this.cfg.timezone, clinic: () => this.cfg.clinic ? this.cfg.clinic(this.info.id, this.info.name) : { idPrefix: 'GK', name: this.info.name, tagline: '', address: '', phones: [], timings: '', runBy: '', clinicians: [], tax: null } });
+    } else {
+      this.supported = SUPPORTED; this.recordsSvc = null;
+      if (missing.length < RECORD_TABLE_NAMES.length) console.warn(`FLOW HQ: clinic records tables missing in ${this.info.id}: ${missing.join(', ')} (run npm run provision-records)`);
+    }
   }
 
   // ---------------------------------------------------------------- reads (short cache, cleared on every write)
