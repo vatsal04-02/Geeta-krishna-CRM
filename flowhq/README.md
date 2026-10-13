@@ -310,3 +310,40 @@ FLOW HQ hides features that would need these. It does not fake them.
 - Select it in `src/server/index.ts`.
 
 The UI shows only what the adapter declares, so nothing in `src/web` changes.
+
+## L. Clinic records: patient register, prescriptions, invoices, attendance (Geeta Krishna Physiotherapy Centre)
+
+Added on top of everything above; nothing above was changed in behaviour. Four pages appear for a workspace **only when its clinic doc has the Clinic Records tables**
+(`grist/clinic-records-schema.md`): **Patients** (the register), **Prescriptions**, **Invoices & Payments**, **Attendance**. Leads are shown as **Enquiries** so a lead is never
+mistaken for a registered patient. No n8n workflow reads or writes these tables, and no webhook or workflow changed.
+
+**Set up one clinic**
+1. Give the Grist API key edit rights on the clinic doc, then create the tables (additive: it never renames, retypes or deletes):
+   ```bash
+   cd flowhq
+   node --env-file=.env node_modules/.bin/tsx src/server/tools/provision-records.ts <clinic-slug>            # dry run: shows what would be created
+   node --env-file=.env node_modules/.bin/tsx src/server/tools/provision-records.ts <clinic-slug> --apply    # creates it
+   ```
+   (`npm run provision-records -- <clinic-slug> [--apply]` does the same when the variables are already in your shell.)
+2. In Grist, make the new tables read-only for the front desk, so staff change them through FLOW HQ (see the end of `grist/clinic-records-schema.md`).
+3. Edit `config/clinic.json`: name, address, clinicians with registration numbers, timings. `"tax": null` means **no tax is ever added**; set `{ "label": "GST", "ratePercent": 5 }` only with the clinic's real rate. In Docker the file is mounted read-only (`deploy/docker-compose.flowhq.yml`); other setups use `FLOWHQ_CLINIC_FILE`.
+4. The pages appear within a minute of the tables existing. Nothing else is configured.
+
+**Rules the app enforces (on the server, not just in the screen)**
+- Ids are stable text (`GK-P-000001`, `RX-000001`, `GK-2026-000001`, `PAY-000001`), generated under a lock and checked after the write. Row numbers are never ids.
+- Money is integer paise. `Total = Subtotal − Discount + Tax`; `Balance = Total − payments`. Overpayment, negative or fractional quantities, and a discount above the subtotal are refused.
+- A saved **invoice is final**. A mistake is corrected by **voiding** it (admin only, reason required, payments first) and issuing a new one. **Payments** are only added, or voided with a reason. Each invoice/payment form carries a one-time key, so a double click or a retry cannot create two.
+- **Prescriptions** are versioned: an edit saves a new version and keeps the old one. Two people editing the same sheet get a conflict message instead of overwriting each other.
+- **Nothing is ever deleted.** Photos are hidden, not deleted. Every change writes an `Audit_Log` row (ids and amounts only, never clinical text).
+- **Photos** (JPEG/PNG, 5 MB, up to 6 per prescription) are checked by file signature on the server, resized in the browser (which also strips location metadata), stored as Grist attachments in the clinic's own doc, and served only through a signed-in, workspace-scoped route. There is no public image URL.
+- Duplicate patients (same phone or same name) are warned about and never merged automatically.
+- The app never writes a diagnosis or a treatment: every clinical field is what the clinician typed.
+
+**Known limits**
+- IDs and the "check, then write" steps are serialised **inside one FLOW HQ process**. Run a single replica (the shipped Docker setup does).
+- The register loads the clinic's patient and finance rows and filters them on the server: fine for a clinic-sized register (thousands of patients).
+- Clinic hours in `Settings` are one window (`open_time` / `close_time`); a 9–1 and 4–8 split cannot be expressed there. This does not affect these pages.
+- Signatures are not collected (the printed documents have a signature line for pen).
+- Not claimed: compliance with any privacy law. Have the handling of patient data reviewed before real patients are entered.
+
+**Tests**: `npm test` (money, records service, records API, theme/words guard), `npm run test:e2e:clinical` (real browser, against a fresh `FLOWHQ_DEMO=true` server).
