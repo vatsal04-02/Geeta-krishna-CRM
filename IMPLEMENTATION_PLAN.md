@@ -29,10 +29,16 @@ Files edited outside the new code: `core/domain.ts` (module keys), `core/registr
 | Print | Prescription (with photo) = **1 A4 page**; invoice = 1 A4 page; both rendered to PDF in Chromium; no nav/sidebar/buttons in print. |
 | Phone width (390 px) | no sideways page scroll on any clinical page |
 
-**Not verified:** anything against a *real* Grist or the live n8n. The tests above use the in-memory Grist fake, which rejects unknown columns but is not Grist. See "Real Grist" below. The existing Playwright suite (`npm run test:e2e`) was not run. No real WhatsApp/n8n flow was exercised.
+**Not verified:** the live n8n, WhatsApp, Cal.com, and the clinic's own production Grist and users. The vitest suites and the browser run use the in-memory Grist fake (it rejects unknown columns but is not Grist). The browser run (UI) was **not** repeated against a real Grist. The existing Playwright suite (`npm run test:e2e`) was not run.
 
-## Real Grist
-See the final report for the result of the real-Grist run (attachments, table creation, refresh persistence).
+## Real Grist (grist-core built from source, temporary local instance, synthetic data): 27/27 checks pass
+Run through the real `provision-records` tool and the real FlowHQ API (login, CSRF, routes) against a real Grist server:
+- provisioning: dry run changes nothing; `--apply` creates all 8 tables; the second `--apply` is a no-op; `Rx_Images.File` is a real `Attachments` column, dates are real `Date` columns
+- a patient, prescription and photo saved through FlowHQ: the attachment in Grist is **byte-identical** to the upload; the photo is served back byte-identical to a signed-in user and refused (401) without a session
+- two simultaneous submits of one invoice form = one invoice + 2 lines in Grist; totals stored as integer paise (305050 / 100000 / 205050); overpayment refused; final payment → paid; attendance and audit rows written
+- **persistence**: a brand-new FlowHQ instance (nothing in memory) shows the same register totals, the patient record (prescription, photo, invoice, 2 payments, visit) and the photo
+- no Grist doc id in any response
+Setup notes learned: Grist needs `GRIST_IN_SERVICE=true` and a login method (production already has Google login); the FlowHQ API key's Grist user needs edit rights on the clinic doc. Not covered: Grist access rules (ACLs), Google login, upgrades of an existing live doc.
 
 ## Decisions made (defaults; easy to change)
 Records in the existing clinic doc · both roles can create invoices/payments, only admins void · no tax unless `config/clinic.json` has a real rate · photos in Grist attachments · invoice numbers `GK-<year>-<6 digits>` restarting each year · leads relabelled Enquiries · split clinic hours left alone (Settings holds one window, so W13 could offer 1–4 PM slots; separate fix).
